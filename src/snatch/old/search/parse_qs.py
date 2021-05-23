@@ -1,36 +1,47 @@
+import typing as t
 from re import search
+from collections import OrderedDict
 
 
 class QSParser(object):
 
+    _cache = OrderedDict()
     __slots__ = ['result']
-
-    def __init__(self, input_str):
-        self.result = []  # list (с уровнями вложенности), в котором накапливаются результаты
-        self._inparenth(input_str, [self.result], []) if self._validate(input_str) else None
 
     def __getitem__(self, item):
         return self.result[item]
 
-    @staticmethod
-    def _validate(input_str):
-        """
-        валидация: тип str, не пустая, количества открытых и закрытых скобок равны
-        :param input_str: входная строка
-        :return: True или False
-        """
-        if not input_str or not isinstance(input_str, str):
-            return False
-        parenths = []
-        for x in input_str:
-            parenths.append(x) if x == '(' else None
-            if x == ')':
-                if len(parenths) == 0:
-                    return False
-                parenths.pop()
-        return True if len(parenths) == 0 else False
+    def __call__(self, input_str: t.AnyStr) -> t.Dict:
+        if input_str in self._cache.keys():
+            return self._cache[input_str]
 
-    def _inparenth(self, input_str, list_stack, drop_key_stack):
+        result = self.search_query(input_str, [self.result], []) if self.validate(input_str) else None
+
+        self._cache[input_str] = result
+        if len(self._cache.keys()) > 100:
+            self._cache.popitem(last=False)
+
+        return result
+
+    @staticmethod
+    def validate(input_str: t.AnyStr) -> bool:
+        if not(input_str and isinstance(input_str, str)):
+            return False
+
+        if not("(" in input_str or ")" in input_str):
+            return True
+
+        open_brackets, close_brackets = 0, 0
+        for char in input_str:
+            if char == "(":
+                open_brackets += 1
+            elif char == ")":
+                close_brackets += 1
+            if open_brackets < close_brackets:
+                return False
+        return True
+
+    def search_query(self, input_str: t.AnyStr, list_stack: t.List, drop_key_stack: t.List[bool]):
         """
         последовательный обход строки относительно открываемых/закрываемых скобок
         :param input_str: текущий остаток строки

@@ -16,6 +16,7 @@ FILTER_INSTANCE = {
     "lt": "lt",
     "lte": "lte",
     "like": "contains",
+    "re": "regex",
     "in": "in",
     "is": "is",
     "year": "year",
@@ -23,7 +24,6 @@ FILTER_INSTANCE = {
     "day": "day",
     "ov": "overlap",
     "between": "range",
-    # "neq": "exclude",
     "asc": "",
     "desc": "-",
     "isnull": "isnull"
