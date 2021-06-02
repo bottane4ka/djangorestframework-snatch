@@ -1,4 +1,3 @@
-
 from django.db import DatabaseError
 
 from snatch.old.exceptions import DataException
@@ -176,5 +175,7 @@ def get_by_uuid(obj, model):
     try:
         return model.objects.get(pk=obj) if is_uuid(obj) else obj
     except model.DoesNotExist:
-        message = "не существует объекта сущности {} с идентификатором {}".format(model._meta.verbose_name, obj)
+        message = "не существует объекта сущности {} с идентификатором {}".format(
+            model._meta.verbose_name, obj
+        )
         raise DataException(message)

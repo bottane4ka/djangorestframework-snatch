@@ -51,7 +51,7 @@ class ActionModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"action"
+        db_table = 'manager"."action'
         verbose_name = "Действие"
         verbose_name_plural = "Действия"
 
@@ -69,7 +69,7 @@ class BaseTaskModel(models.Model):
     name = models.TextField(db_column="name", verbose_name="Наименование")
 
     class Meta:
-        db_table = "manager\".\"base_task"
+        db_table = 'manager"."base_task'
         verbose_name = "Базовая задача"
         verbose_name_plural = "Базовые задачи"
 
@@ -119,7 +119,7 @@ class CommandModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"command"
+        db_table = 'manager"."command'
         verbose_name = "Команда"
         verbose_name_plural = "Команды"
 
@@ -168,7 +168,7 @@ class CommandLogModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"command_log"
+        db_table = 'manager"."command_log'
         verbose_name = "Аудит выполнения команды"
         verbose_name_plural = "Аудит выполнения команд"
 
@@ -219,7 +219,7 @@ class BaseTaskLogModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"base_task_log"
+        db_table = 'manager"."base_task_log'
         verbose_name = "Аудит выполнения базовой задачи"
         verbose_name_plural = "Аудит выполнения базовых задач"
 
@@ -302,7 +302,7 @@ class MessageModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"message"
+        db_table = 'manager"."message'
         verbose_name = "Сообщение"
         verbose_name_plural = "Сообщения"
 
@@ -332,7 +332,7 @@ class MethodModuleModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"method_module"
+        db_table = 'manager"."method_module'
         verbose_name = "Метод службы"
         verbose_name_plural = "Методы служб"
 
@@ -364,7 +364,7 @@ class ModuleModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"module"
+        db_table = 'manager"."module'
         verbose_name = "Служба"
         verbose_name_plural = "Службы"
 
@@ -391,7 +391,7 @@ class ObjectToCommandLogModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"object_to_command_log"
+        db_table = 'manager"."object_to_command_log'
         verbose_name = "Аудит выполнения команды - Объект"
         verbose_name_plural = "Аудит выполнения команд - Объекты"
 
@@ -418,7 +418,7 @@ class ObjectToTaskLogModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"object_to_task_log"
+        db_table = 'manager"."object_to_task_log'
         verbose_name = "Аудит выполнения задачи - Объект"
         verbose_name_plural = "Аудит выполнения задач - Объекты"
 
@@ -436,7 +436,7 @@ class TaskModel(models.Model):
     name = models.TextField(db_column="name", verbose_name="Наименование")
 
     class Meta:
-        db_table = "manager\".\"task"
+        db_table = 'manager"."task'
         verbose_name = "Задача"
         verbose_name_plural = "Задачи"
 
@@ -476,7 +476,7 @@ class TaskLogModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"task_log"
+        db_table = 'manager"."task_log'
         verbose_name = "Аудит выполнения задачи"
         verbose_name_plural = "Аудит выполнения задач"
 
@@ -510,7 +510,7 @@ class TaskSequenceModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"task_sequence"
+        db_table = 'manager"."task_sequence'
         verbose_name = "Последовательность задач"
         verbose_name_plural = "Последовательности задач"
 
@@ -531,7 +531,7 @@ class TaskStatusModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"task_status"
+        db_table = 'manager"."task_status'
         verbose_name = "Статус выполнения задачи"
         verbose_name_plural = "Статусы выполнения задачи"
 
@@ -553,7 +553,9 @@ class NotifyCountModel(models.Model):
         db_column="table_name", verbose_name="Наименование таблицы"
     )
     count = models.IntegerField(
-        db_column="count", default=0, verbose_name="Количество пришедших notify от сущности"
+        db_column="count",
+        default=0,
+        verbose_name="Количество пришедших notify от сущности",
     )
     last_update_datetime = models.DateTimeField(
         db_column="last_update_datetime",
@@ -569,7 +571,7 @@ class NotifyCountModel(models.Model):
     )
 
     class Meta:
-        db_table = "manager\".\"notify_count"
+        db_table = 'manager"."notify_count'
         verbose_name = "Частоты отправки notify для сущности"
         verbose_name_plural = "Частоты отправки notify для сущностей"
-        unique_together = ['table_schema', 'table_name']
+        unique_together = ["table_schema", "table_name"]

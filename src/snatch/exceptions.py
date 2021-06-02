@@ -27,4 +27,17 @@ class FilterException(Exception):
         self.ex = ex
 
     def __str__(self):
-        return f"<GetObjectException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
+        return f"<FilterException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
+
+
+class BracketsException(Exception):
+    """ Ошибка при валидации скобок"""
+
+    def __init__(self, input_string):
+        self.input_string = input_string
+
+    def __str__(self):
+        if self.input_string:
+            return f"невалидное количество скобок в подстроке {self.input_string}"
+        else:
+            return f"невалидное количество скобок в подстроке"

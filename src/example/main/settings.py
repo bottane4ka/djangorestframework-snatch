@@ -88,7 +88,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_FILTER_BACKENDS": ("rest_framework_filters.backends.RestFrameworkFilterBackend",),
+    "DEFAULT_FILTER_BACKENDS": (
+        "rest_framework_filters.backends.RestFrameworkFilterBackend",
+    ),
     "PAGE_SIZE": 20,
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -99,7 +101,6 @@ REST_FRAMEWORK = {
     "DATETIME_INPUT_FORMATS": ["%d-%m-%Y %H:%M"],
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
-
 
 
 LANGUAGE_CODE = "ru-RU"
@@ -186,4 +187,4 @@ LISTEN_MAIN_TASK_TABLE = env.str("LISTEN_MAIN_TASK_TABLE")
 LISTEN_TASK_TABLE = env.str("LISTEN_TASK_TABLE")
 LISTEN_COMMAND_TABLE = env.str("LISTEN_COMMAND_TABLE")
 
-TEST_RUNNER = 'tests.runner.PostgresSchemaTestRunner'
+TEST_RUNNER = "tests.runner.PostgresSchemaTestRunner"

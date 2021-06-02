@@ -26,7 +26,7 @@ FILTER_INSTANCE = {
     "between": "range",
     "asc": "",
     "desc": "-",
-    "isnull": "isnull"
+    "isnull": "isnull",
 }
 
 
@@ -40,8 +40,8 @@ def filter_for_model(**kwargs):
         offset = int(data.pop("offset", [0])[0])
         order_by = data.pop("order", None)
         distinct = data.pop("distinct", False)
-        data.pop('format', None)
-        data.pop('max_level', None)
+        data.pop("format", None)
+        data.pop("max_level", None)
 
         filter_info = None
         if data:
@@ -56,11 +56,9 @@ def filter_for_model(**kwargs):
 
             if not value:
                 value = [
-                    "{}{}".format(
-                        key,
-                        ".{}".format(
-                            item[0]) if item[0] else "") for key,
-                    item in data.items()]
+                    "{}{}".format(key, ".{}".format(item[0]) if item[0] else "")
+                    for key, item in data.items()
+                ]
                 value = ",".join(value)
 
             value = "{}({})".format(main_key, value)
@@ -94,7 +92,7 @@ def filter_for_model(**kwargs):
             if distinct:
                 model = model.distinct()
             if limit > 0:
-                return model[offset:limit + offset]
+                return model[offset : limit + offset]
             else:
                 return model[offset:]
         else:
@@ -104,21 +102,25 @@ def filter_for_model(**kwargs):
                         model = model.objects.filter(filter_info).distinct()
                         if model.count() == 0:
                             raise FilterParseException(
-                                "Ошибка: не существует объекта с данными параметрами фильтрации")
+                                "Ошибка: не существует объекта с данными параметрами фильтрации"
+                            )
                         elif model.count() == 1:
                             return model[0]
                         else:
                             raise FilterParseException(
                                 "Ошибка: запрос с данными параметрами фильтрации возвращает список значений. "
-                                "Используйте /list.")
+                                "Используйте /list."
+                            )
                     return model.objects.get(filter_info)
                 except ObjectDoesNotExist as ex:
                     raise FilterParseException(
-                        "Ошибка: не существует объекта с данными параметрами фильтрации")
+                        "Ошибка: не существует объекта с данными параметрами фильтрации"
+                    )
                 except MultipleObjectsReturned as ex:
                     raise FilterParseException(
                         "Ошибка: запрос с данными параметрами фильтрации возвращает список значений."
-                        " Используйте /list.")
+                        " Используйте /list."
+                    )
             else:
                 raise FilterParseException("Ошибка: нет параметров фильтрации")
     except FilterParseException as ex:
@@ -134,7 +136,7 @@ def check_attribute_array(attribute_list, model):
     """
     for i in range(len(attribute_list)):
         attribute = attribute_list[i]
-        if 'pk' == attribute:
+        if "pk" == attribute:
             attribute = model._meta.pk.name
         field_list = [field.name for field in model._meta.get_fields()]
         # Если атрибут существует в списке атрибутов модели, значит все верно
@@ -149,13 +151,16 @@ def check_attribute_array(attribute_list, model):
             else:
                 if i != len(attribute_list) - 1:
                     raise FilterParseException(
-                        "Атрибут {} является конечной точкой поиска".format(attribute))
+                        "Атрибут {} является конечной точкой поиска".format(attribute)
+                    )
                 else:
                     return True
         else:
             raise FilterParseException(
                 "Не существует атрибута {} в информационном ресурсе {}".format(
-                    attribute, model._meta.verbose_name))
+                    attribute, model._meta.verbose_name
+                )
+            )
     return True
 
 
@@ -172,10 +177,10 @@ def like_resolver(value):
     :return: (ключевое_слово_operator'а, очищенное_от_звездочек_value)
     """
     lookups = [
-        (r'^[^\*]*$', 'exact', value),
-        (r'^\*.*\*$', 'contains', value[1:-1]),
-        (r'^\*.*$', 'endswith', value[1:]),
-        (r'^.*\*$', 'startswith', value[:-1])
+        (r"^[^\*]*$", "exact", value),
+        (r"^\*.*\*$", "contains", value[1:-1]),
+        (r"^\*.*$", "endswith", value[1:]),
+        (r"^.*\*$", "startswith", value[:-1]),
     ]
     for pattern, operator, val in lookups:
         if search(pattern, value):
@@ -190,28 +195,26 @@ def check_operator(operator, value):
     if operator not in FILTER_INSTANCE.keys():
         raise FilterParseException(
             "Неверная операция фильтрации {}. Введите одно из значений: {}".format(
-                operator, ", ".join(
-                    FILTER_INSTANCE.keys())))
+                operator, ", ".join(FILTER_INSTANCE.keys())
+            )
+        )
     if value in ["desc", "asc"]:
         operator = value
     elif operator == "is":
-        ntf = {
-            "true": [
-                "", True], "false": [
-                "", False], "null": [
-                "isnull", True]}
+        ntf = {"true": ["", True], "false": ["", False], "null": ["isnull", True]}
         if value in ntf.keys():
             operator, value = ntf[value]
         else:
             raise FilterParseException(
                 "Неверные параметры фильтрации: для оператора is значение должно быть равно {}".format(
-                    ", ".join(
-                        ntf.keys())))
+                    ", ".join(ntf.keys())
+                )
+            )
 
     elif operator == "eq" and value == "null":
         operator, value = "isnull", True
 
-    elif operator == 'like':
+    elif operator == "like":
         operator, value = like_resolver(value)
 
     else:
@@ -262,18 +265,24 @@ def to_order(data, model):
         else:
             if line not in FILTER_INSTANCE.keys():
                 raise FilterParseException(
-                    "Неверные параметры сортировки: укажите направление сортировки desc или asc")
+                    "Неверные параметры сортировки: укажите направление сортировки desc или asc"
+                )
             else:
                 raise FilterParseException(
-                    "Неверные параметры сортировки: укажите атрибут для сортировки")
+                    "Неверные параметры сортировки: укажите атрибут для сортировки"
+                )
 
         check_attribute_array(line[:-1], model)
         operator = line[-1]
         if operator not in FILTER_INSTANCE.keys():
             raise FilterParseException(
-                "Неверные параметры сортировки: укажите направление сортировки desc или asc")
+                "Неверные параметры сортировки: укажите направление сортировки desc или asc"
+            )
 
-        attribute = "-{}".format("__".join(line[:-1])
-                                 ) if operator == "desc" else "__".join(line[:-1])
+        attribute = (
+            "-{}".format("__".join(line[:-1]))
+            if operator == "desc"
+            else "__".join(line[:-1])
+        )
         new_data.append(attribute)
     return new_data

@@ -1,9 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 
-from .mixins import (
-    CustomSerializationMixin,
-    CustomDeserializationMixin,
-)
+from .mixins import CustomSerializationMixin, CustomDeserializationMixin
 
 
 class CustomSerializer(

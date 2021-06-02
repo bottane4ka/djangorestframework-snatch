@@ -119,7 +119,6 @@ class MessageSerializer(CustomSerializer):
 
 
 class NotifyCountSerializer(CustomSerializer):
-
     class Meta:
         model = NotifyCountModel
         fields = "__all__"

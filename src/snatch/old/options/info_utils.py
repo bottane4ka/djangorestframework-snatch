@@ -9,29 +9,29 @@ INFO_SERVICE_LIST = {
         "httpMethod": "GET",
         "responseContentType": "application/json",
         "systemName": "getList",
-        "path": "/list"
+        "path": "/list",
     },
     "POST": {
         "parameterType": "DTO_LIST",
         "httpMethod": "POST",
         "responseContentType": "application/json",
         "systemName": "saveList",
-        "path": "/list"
+        "path": "/list",
     },
     "PUT": {
         "parameterType": "DTO_LIST",
         "httpMethod": "PUT",
         "responseContentType": "application/json",
         "systemName": "updateList",
-        "path": "/list"
+        "path": "/list",
     },
     "DELETE": {
         "parameterType": "FILTER",
         "httpMethod": "DELETE",
         "responseContentType": "application/json",
         "systemName": "deleteList",
-        "path": "/list"
-    }
+        "path": "/list",
+    },
 }
 
 INFO_SERVICE_DETAIL = {
@@ -40,29 +40,29 @@ INFO_SERVICE_DETAIL = {
         "httpMethod": "GET",
         "responseContentType": "application/json",
         "systemName": "getEntity",
-        "path": "/"
+        "path": "/",
     },
     "POST": {
         "parameterType": "DTO",
         "httpMethod": "POST",
         "responseContentType": "application/json",
         "systemName": "save",
-        "path": "/"
+        "path": "/",
     },
     "PUT": {
         "parameterType": "DTO",
         "httpMethod": "PUT",
         "responseContentType": "application/json",
         "systemName": "update",
-        "path": "/"
+        "path": "/",
     },
     "DELETE": {
         "parameterType": "FILTER",
         "httpMethod": "DELETE",
         "responseContentType": "application/json",
         "systemName": "delete",
-        "path": "/"
-    }
+        "path": "/",
+    },
 }
 
 INFO_SERVICE_SIZE = {
@@ -71,7 +71,7 @@ INFO_SERVICE_SIZE = {
         "httpMethod": "GET",
         "responseContentType": "text/plain",
         "systemName": "getListSize",
-        "path": "/size"
+        "path": "/size",
     }
 }
 
@@ -91,23 +91,23 @@ INFO_REPO = {
                 "httpMethod": "GET",
                 "responseContentType": "application/json",
                 "systemName": "getList",
-                "path": "/list"
+                "path": "/list",
             },
             {
                 "parameterType": "FILTER",
                 "httpMethod": "GET",
                 "responseContentType": "application/json",
                 "systemName": "getEntity",
-                "path": "/"
+                "path": "/",
             },
             {
                 "parameterType": "DTO",
                 "httpMethod": "POST",
                 "responseContentType": "application/json",
                 "systemName": "save",
-                "path": "/"
-            }
-        ]
+                "path": "/",
+            },
+        ],
     },
     "attributes": [
         {
@@ -117,7 +117,7 @@ INFO_REPO = {
             "systemName": "s_id",
             "reference": None,
             "type": "uuid",
-            "name": "Идентификатор"
+            "name": "Идентификатор",
         },
         {
             "access": None,
@@ -126,9 +126,9 @@ INFO_REPO = {
             "systemName": "name",
             "reference": None,
             "type": "character varying",
-            "name": "Наименование"
-        }
-    ]
+            "name": "Наименование",
+        },
+    ],
 }
 
 
@@ -150,13 +150,15 @@ def to_info(view_name, schema, model_name, search_attribute=False):
     data["name"] = serializer.Meta.model._meta.verbose_name
     data["semanticLinks"] = None
     data["version"] = None
-    if serializer.Meta.model._meta.db_table.find("\".\"") > 0:
-        data["systemName"] = serializer.Meta.model._meta.db_table.split("\".\"")[1]
+    if serializer.Meta.model._meta.db_table.find('"."') > 0:
+        data["systemName"] = serializer.Meta.model._meta.db_table.split('"."')[1]
     else:
         data["systemName"] = serializer.Meta.model._meta.db_table
     data["type"] = "classifier" if "classifier" in schema else "resource"
     data["schema"] = schema
-    model_class_name = re.sub(r"([A-Z])", r" \1", serializer.Meta.model.__name__).split()[:-1]
+    model_class_name = re.sub(
+        r"([A-Z])", r" \1", serializer.Meta.model.__name__
+    ).split()[:-1]
     data["modelName"] = "_".join([f.lower() for f in model_class_name])
 
     if not search_attribute:
@@ -166,12 +168,14 @@ def to_info(view_name, schema, model_name, search_attribute=False):
         class_size = getattr(module, "{}Size".format(model_name))
 
         data["service"] = {
-            "path": '/'.join(view_name.split("/")[:-2]),
-            "methods": list()
+            "path": "/".join(view_name.split("/")[:-2]),
+            "methods": list(),
         }
-        class_list = [[class_list, INFO_SERVICE_LIST],
-                      [class_detail, INFO_SERVICE_DETAIL],
-                      [class_size, INFO_SERVICE_SIZE]]
+        class_list = [
+            [class_list, INFO_SERVICE_LIST],
+            [class_detail, INFO_SERVICE_DETAIL],
+            [class_size, INFO_SERVICE_SIZE],
+        ]
 
         allowed_methods = list()
         for line in class_list:
@@ -184,7 +188,9 @@ def to_info(view_name, schema, model_name, search_attribute=False):
     data["attributes"] = list()
     field_list = serializer.Meta.fields
     for field in field_list:
-        model_field, is_field, type_ref = get_info_in_model_by_serializer(field, serializer.Meta.model)
+        model_field, is_field, type_ref = get_info_in_model_by_serializer(
+            field, serializer.Meta.model
+        )
         line = dict()
         line["access"] = None
         line["alias"] = None
@@ -195,9 +201,15 @@ def to_info(view_name, schema, model_name, search_attribute=False):
             if "id" == field or "_id" in field or "_list" in field:
                 line["type"] = "uuid"
             else:
-                types_list = [[models.TextField, "character varying"], [models.IntegerField, "integer"],
-                              [models.BooleanField, "boolean"], [models.DateField, "date"],
-                              [models.DateTimeField, "datetime"], [JSONField, "jsonb"], [models.FloatField, "float"]]
+                types_list = [
+                    [models.TextField, "character varying"],
+                    [models.IntegerField, "integer"],
+                    [models.BooleanField, "boolean"],
+                    [models.DateField, "date"],
+                    [models.DateTimeField, "datetime"],
+                    [JSONField, "jsonb"],
+                    [models.FloatField, "float"],
+                ]
                 for type_instance in types_list:
                     if isinstance(model_field, type_instance[0]):
                         line["type"] = type_instance[1]
@@ -205,41 +217,57 @@ def to_info(view_name, schema, model_name, search_attribute=False):
             if not is_field:
                 line["name"] = model_field._meta.verbose_name
                 # line["schema"] = model_field._meta.db_table.split(".")[0]
-                model_class_name = re.sub(r"([A-Z])", r" \1", model_field.__name__).split()[:-1]
+                model_class_name = re.sub(
+                    r"([A-Z])", r" \1", model_field.__name__
+                ).split()[:-1]
                 # line["modelName"] = "_".join([f.lower() for f in model_class_name])
                 line["reference"] = {
                     "refType": type_ref,
-                    "type": "resource" if "classifier" not in model_field._meta.db_table else "classifier",
-                    "schema": model_field._meta.db_table.split("\".\"")[0],
-                    "systemName": model_field._meta.db_table.split("\".\"")[1],
+                    "type": "resource"
+                    if "classifier" not in model_field._meta.db_table
+                    else "classifier",
+                    "schema": model_field._meta.db_table.split('"."')[0],
+                    "systemName": model_field._meta.db_table.split('"."')[1],
                     "name": model_field._meta.verbose_name,
                     "modelName": "_".join([f.lower() for f in model_class_name]),
-                    "direction": None
+                    "direction": None,
                 }
             elif model_field.one_to_many:
                 line["name"] = model_field.related_model._meta.verbose_name
-                model_class_name = re.sub(r"([A-Z])", r" \1", model_field.related_model.__name__).split()[:-1]
+                model_class_name = re.sub(
+                    r"([A-Z])", r" \1", model_field.related_model.__name__
+                ).split()[:-1]
                 line["reference"] = {
                     "refType": type_ref,
-                    "type": "resource" if "classifier" not in model_field.related_model._meta.db_table else "classifier",
-                    "schema": model_field.related_model._meta.db_table.split("\".\"")[0],
-                    "systemName": model_field.related_model._meta.db_table.split("\".\"")[1],
+                    "type": "resource"
+                    if "classifier" not in model_field.related_model._meta.db_table
+                    else "classifier",
+                    "schema": model_field.related_model._meta.db_table.split('"."')[0],
+                    "systemName": model_field.related_model._meta.db_table.split('"."')[
+                        1
+                    ],
                     "name": model_field.related_model._meta.verbose_name,
                     "modelName": "_".join([f.lower() for f in model_class_name]),
-                    "direction": None
+                    "direction": None,
                 }
             elif model_field.many_to_one:
                 line["name"] = model_field.verbose_name
-                model_class_name = re.sub(r"([A-Z])", r" \1", model_field.related_model.__name__).split()[:-1]
+                model_class_name = re.sub(
+                    r"([A-Z])", r" \1", model_field.related_model.__name__
+                ).split()[:-1]
                 # line["modelName"] = "_".join([f.lower() for f in model_class_name])
                 line["reference"] = {
                     "refType": type_ref,
-                    "type": "resource" if "classifier" not in model_field.related_model._meta.db_table else "classifier",
-                    "schema": model_field.related_model._meta.db_table.split("\".\"")[0],
-                    "systemName": model_field.related_model._meta.db_table.split("\".\"")[1],
+                    "type": "resource"
+                    if "classifier" not in model_field.related_model._meta.db_table
+                    else "classifier",
+                    "schema": model_field.related_model._meta.db_table.split('"."')[0],
+                    "systemName": model_field.related_model._meta.db_table.split('"."')[
+                        1
+                    ],
                     "name": model_field.related_model._meta.verbose_name,
                     "modelName": "_".join([f.lower() for f in model_class_name]),
-                    "direction": None
+                    "direction": None,
                 }
             else:
                 line["name"] = model_field.verbose_name
@@ -261,9 +289,11 @@ def get_info_in_model_by_serializer(field, model):
         else:
             return model_field, True, "ONE_TO_MANY"
     except:
-        rel_model_field_list = [f for f in model._meta.get_fields() if f.one_to_many or f.many_to_many]
+        rel_model_field_list = [
+            f for f in model._meta.get_fields() if f.one_to_many or f.many_to_many
+        ]
         for rel_model_field in rel_model_field_list:
-            if rel_model_field.related_model._meta.db_table.split("\".\"")[1] in field:
+            if rel_model_field.related_model._meta.db_table.split('"."')[1] in field:
                 return rel_model_field.related_model._meta.model, False, "ONE_TO_MANY"
 
         for rel_model_field in rel_model_field_list:

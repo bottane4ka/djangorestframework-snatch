@@ -7,19 +7,20 @@ from rest.manager.models import NotifyCountModel
 
 
 class NotifyCountTestCase(TestCase):
-
     def setUp(self) -> t.NoReturn:
         data = {
             "table_schema": "test",
             "table_name": "test",
             "wait_time": 10,
             "max_count": 2,
-            "last_update_datetime": None
+            "last_update_datetime": None,
         }
         NotifyCountModel.objects.create(**data)
 
     def test_update_count_lt_max_count(self):
-        notify_count = NotifyCountModel.objects.get(table_schema="test", table_name="test")
+        notify_count = NotifyCountModel.objects.get(
+            table_schema="test", table_name="test"
+        )
         notify_count.count += 1
         notify_count.save()
 
@@ -27,7 +28,9 @@ class NotifyCountTestCase(TestCase):
         self.assertNotEqual(notify_count.last_update_datetime, None)
 
     def test_update_count_gt_max_count(self):
-        notify_count = NotifyCountModel.objects.get(table_schema="test", table_name="test")
+        notify_count = NotifyCountModel.objects.get(
+            table_schema="test", table_name="test"
+        )
         notify_count.count += 2
         notify_count.save()
 
@@ -35,7 +38,9 @@ class NotifyCountTestCase(TestCase):
         self.assertEqual(notify_count.last_update_datetime, None)
 
     def test_update_count_gt_wait_time(self):
-        notify_count = NotifyCountModel.objects.get(table_schema="test", table_name="test")
+        notify_count = NotifyCountModel.objects.get(
+            table_schema="test", table_name="test"
+        )
         notify_count.count += 1
         notify_count.save()
         sleep(notify_count.wait_time + 1)
