@@ -2,12 +2,15 @@
 name = "djangorestframework-snatch"
 version = "0.1.0"
 description = ""
-authors = ["abott <abott@usetech.ru>"]
+authors = ["bottane4ka <bottane4ka@yandex.ru>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 Django = "^3.2.3"
 django-rest-framework = "^0.1.0"
+django-environ = "=0.4.5"
+labelgun = { git = "https://gitlab.usetech.ru/pub/labelgun.git", extras = ["logger"], tag = "0.1.8" }
+psycopg2-binary = "~=2.8"
 
 [tool.poetry.dev-dependencies]
 

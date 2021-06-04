@@ -11,11 +11,6 @@ from snatch.exceptions import (
 )
 from snatch.search.operators import converters
 from snatch.search.operators.consts import DEFAULT_OPERATORS
-from snatch.tuples import OperatorInfo
-
-OPERATORS = _operator_dict = {
-    operator[0]: OperatorInfo(*operator) for operator in DEFAULT_OPERATORS
-}
 
 
 def validate_brackets(input_str: str):
@@ -58,15 +53,15 @@ def validate_attributes(attribute_list: t.List, model: Model):
         attribute = model._meta.pk.name if "pk" == attribute else attribute
         try:
             field = model._meta.get_field(attribute)
-            if field.is_related:
+            if field.is_relation:
                 model = field.related_model
             elif i != count_level - 1:
-                raise EndAttributeError(attribute, model._meta.name)
+                raise EndAttributeError(attribute, model._meta.object_name)
         except FieldDoesNotExist:
-            raise NoAttributeInModelError(attribute, model._meta.name)
+            raise NoAttributeInModelError(attribute, model._meta.object_name)
 
 
-def validate_operators(operator: str, value: t.Any) -> t.Tuple[str, t.Any, bool]:
+def convert_operator(operator: str, value: t.Any) -> t.Tuple[str, t.Any, bool]:
     """Валидация и преобразование оператора и значения оператора
 
     Args:
@@ -76,7 +71,10 @@ def validate_operators(operator: str, value: t.Any) -> t.Tuple[str, t.Any, bool]
     Returns:
         оператор, значение оператора, признак отрицания
     """
-    if operator not in OPERATORS.keys():
+    if f"\.{operator}\." not in DEFAULT_OPERATORS and f"\.{operator}" not in DEFAULT_OPERATORS:
         raise NotValidOperatorError(operator, value)
     func = getattr(converters, f"{operator}_convert", None)
-    return func(value) if func else operator, value, False
+    is_not = False
+    if func:
+        operator, value, is_not = func(value)
+    return operator, value, is_not

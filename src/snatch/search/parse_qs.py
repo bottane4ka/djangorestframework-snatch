@@ -4,10 +4,10 @@ from django.db.models import Q, Model
 from snatch.search.validators import (
     validate_brackets,
     validate_attributes,
-    validate_operators,
+    convert_operator,
 )
 from snatch.tuples import BracketParser
-from snatch.search.validators import OPERATORS
+from snatch.search.operators.consts import DEFAULT_OPERATORS
 
 
 class StrongCreator:
@@ -15,44 +15,62 @@ class StrongCreator:
 
     """
 
-    def __call__(self, parse_data: t.List[t.Dict], model: Model) -> Q:
-        return self._to_Q(parse_data, model)
+    def __call__(
+        self, input_sting: str, model: type(Model), is_filter=True
+    ) -> t.Union[Q, t.List[str]]:
+        parse_data = StrongParser()(input_sting, model, is_filter=is_filter)
+        if is_filter:
+            return self._to_Q_filter(parse_data, model)
+        return self._to_Q_order(parse_data, model)
 
-    def _to_Q(
-        self, data: t.Union[t.List[t.Dict[str, t.Any]]], model: Model, main_key="and"
-    ) -> Q:
+    def _to_Q_filter(self, data: t.List[t.Dict[str, t.Any]], model: type(Model), main_key=None) -> Q:
         query = Q()
         for line in data:
-            key_list = line.keys()
+            key_list = list(line.keys())
             for key in key_list:
                 if key in ["and", "not"]:
-                    query &= self._to_Q(line[key], model, main_key=key)
+                    query &= self._to_Q_filter(line[key], model, main_key=key)
                 elif key in ["or"]:
-                    query |= self._to_Q(line[key], model, main_key=key)
+                    query |= self._to_Q_filter(line[key], model, main_key=key)
                 else:
                     item = line.pop(key)
                     attribute_list = key.split("__")[:-1]
                     operator = key.split("__")[-1]
                     validate_attributes(attribute_list, model)
-                    operator, item, is_not = validate_operators(operator, item)
+                    operator, item, is_not = convert_operator(operator, item)
                     new_key = "{}{}".format(
                         "__".join(attribute_list), f"__{operator}" if operator else ""
                     )
-                    line[new_key] = item if not is_not else ~Q(**item)
+                    if is_not:
+                        query &= ~Q(**{new_key: item})
+                    else:
+                        line.update({new_key: item})
 
-        if main_key:
+        if main_key and data:
             func = getattr(self, f"_{main_key}_convert", None)
             query = func(query, data) if func else query
         return query
 
+    def _to_Q_order(self, data: t.List[str], model: type(Model)) -> t.List[str]:
+        order_ = list()
+        for line in data:
+            attribute_list = line.split("__")[:-1]
+            operator = line.split("__")[-1]
+            validate_attributes(attribute_list, model)
+            operator, item, is_not = convert_operator(operator, "__".join(attribute_list))
+            order_.append(operator)
+        return order_
+
     def _and_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
         result = dict()
         for line in data:
-            result.update(line)
-        return query & Q(**result)
+            if line:
+                result.update(line)
+
+        return query & Q(**result) if result else query
 
     def _or_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
-        query |= (Q(**line) for line in data)
+        query |= (Q(**line) for line in data if line)
         return query
 
     def _not_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
@@ -65,18 +83,18 @@ class StrongParser:
     """
 
     search_with_brackets = "|".join(
-        [
-            f"\.{key}\.$" if value.is_point else f"{key}$"
-            for key, value in OPERATORS.items()
-            if value.is_bracket
-        ]
+        [f"{key}$" for key in DEFAULT_OPERATORS if key.count(".") == 0]
     )
 
     search_without_brackets = "|".join(
-        [f"\.{key}\." for key, value in OPERATORS.items() if value.is_point]
+        [key for key in DEFAULT_OPERATORS if key.count(".") == 2]
     )
 
-    def __call__(self, input_string: str) -> t.List[t.Dict]:
+    search_order = "|".join([key for key in DEFAULT_OPERATORS if key.count(".") == 1])
+
+    def __call__(self, input_string: str, model: type(Model), is_filter=True) -> t.List[t.Union[t.Dict, str]]:
+        self.model = model
+        self.is_filter = is_filter
         qb = BracketParser(input_string, -1, -1, [[]], [])
         validate_brackets(input_string)
         self.search_query(qb)
@@ -177,25 +195,32 @@ class StrongParser:
         """Получение оператора между точками, которые не подразумевают скобки
 
         """
-        result = re.search(self.search_without_brackets, sub_string)
+        if self.is_filter:
+            result = re.search(self.search_without_brackets, sub_string)
+        else:
+            result = re.search(self.search_order, sub_string)
         if result:
             return self._handle_operator(sub_string, result.group())
         else:
             return sub_string
 
-    def _handle_operator(self, column_name_list: str, op: str) -> t.Union[t.Dict, str]:
+    def _handle_operator(
+        self, attribute_list: str, operator: str
+    ) -> t.Union[t.Dict, str]:
         """Построение параметра для запроса
 
         """
-        column_name_list, search_data = column_name_list.split(op)
-        column_name_list = "__".join(column_name_list.split("."))
+        attribute_list, search_data = attribute_list.split(operator)
+        attribute_list = attribute_list.split(".")
         if search_data:
-            return {"{}__{}".format(column_name_list, op[1:-1]): search_data}
+            return {"{}__{}".format("__".join(attribute_list), operator.replace(".", "")): search_data}
         else:
-            return "{}__{}".format(column_name_list, op[1:-1])
+            return "{}__{}".format("__".join(attribute_list), operator.replace(".", ""))
 
 
 if __name__ == "__main__":
     a = StrongParser()
-    string = "and(p.eq.123,or(p.in.(1,2,3),abw.between.(578,587),a.p.eq.9))"
-    result = a(string)
+    # string = "and(p.eq.123,or(p.in.(1,2,3),abw.between.(578,587),a.p.eq.9))"
+    string = "p.desc,q.asc"
+    result = a(string, is_filter=False)
+    print(result)

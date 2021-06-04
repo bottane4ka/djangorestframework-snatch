@@ -33,8 +33,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest.manager",
-    "rest.brave_rest_framework",
+    "manager",
+    "snatch",
 ]
 
 MIDDLEWARE = [
@@ -47,7 +47,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "rest.main.urls"
+ROOT_URLCONF = "urls"
 
 TEMPLATES = [
     {
@@ -65,7 +65,7 @@ TEMPLATES = [
     }
 ]
 
-WSGI_APPLICATION = "rest.main.wsgi.application"
+WSGI_APPLICATION = "wsgi.application"
 
 DATABASES = {
     "default": {
@@ -88,14 +88,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_FILTER_BACKENDS": (
-        "rest_framework_filters.backends.RestFrameworkFilterBackend",
-    ),
     "PAGE_SIZE": 20,
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "DATETIME_FORMAT": "%d-%m-%Y %H:%M",
     "DATETIME_INPUT_FORMATS": ["%d-%m-%Y %H:%M"],
@@ -145,14 +138,6 @@ else:
     ]
     default_formatter = {"format": "%(message)s"}
 
-# structlog.configure(
-#     processors=structlog_processors,
-#     context_class=structlog.threadlocal.wrap_dict(dict),
-#     logger_factory=structlog.stdlib.LoggerFactory(),
-#     wrapper_class=structlog.stdlib.BoundLogger,
-#     cache_logger_on_first_use=True,
-# )
-
 LOGGING = {
     "version": 1,
     "filters": {
@@ -186,5 +171,3 @@ LISTEN_MESSAGE_TABLE = env.str("LISTEN_MESSAGE_TABLE")
 LISTEN_MAIN_TASK_TABLE = env.str("LISTEN_MAIN_TASK_TABLE")
 LISTEN_TASK_TABLE = env.str("LISTEN_TASK_TABLE")
 LISTEN_COMMAND_TABLE = env.str("LISTEN_COMMAND_TABLE")
-
-TEST_RUNNER = "tests.runner.PostgresSchemaTestRunner"

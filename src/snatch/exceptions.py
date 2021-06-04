@@ -7,15 +7,18 @@ class GetObjectException(Exception):
         "many_found": "найдено больше одного объекта",
     }
 
-    def __init__(self, class_name, error_type=None):
+    def __init__(self, class_name, error_type=None, ex=None):
         self.message = (
             self._error_type_list.get(error_type, None) if error_type else None
         )
         self.class_name = class_name
+        self.ex = ex
 
     def __str__(self):
-        if not self.message:
+        if not self.message and not self.ex:
             return f"<GetObjectException> Неизвестная ошибка получения объекта из модели {self.class_name}."
+        elif not self.message and self.ex:
+            return f"<GetObjectException> Неизвестная ошибка получения объекта из модели {self.class_name}: {self.ex}."
         return f"<GetObjectException> Ошибка получения объекта из модели {self.class_name}: {self.message}."
 
 
@@ -25,7 +28,7 @@ class ModelFilterException(Exception):
         self.ex = ex
 
     def __str__(self):
-        return f"<ModelFilterException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
+        return f"<ModelFilterException> Ошибка в параметрах фильтрации для модели {self.class_name}.\n{self.ex}."
 
 
 class FilterException(Exception):

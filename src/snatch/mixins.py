@@ -7,7 +7,7 @@ from rest_framework.relations import PKOnlyObject
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from .exceptions import GetObjectException, FilterException
+from .exceptions import GetObjectException, ModelFilterException
 
 
 class CustomCreateModelMixin(mixins.CreateModelMixin):
@@ -20,7 +20,7 @@ class CustomRetrieveModelMixin:
             queryset = self.get_queryset()
             serializer = self.get_serializer(queryset)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except (GetObjectException, FilterException) as ex:
+        except (GetObjectException, ModelFilterException) as ex:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -30,7 +30,7 @@ class CustomListModelMixin:
             queryset = self.get_queryset()
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except (GetObjectException, FilterException) as ex:
+        except (GetObjectException, ModelFilterException) as ex:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -42,7 +42,7 @@ class CustomUpdateModelMixin:
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except (GetObjectException, FilterException) as ex:
+        except (GetObjectException, ModelFilterException) as ex:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
     def perform_update(self, serializer):
@@ -55,7 +55,7 @@ class CustomDestroyModelMixin:
             queryset = self.get_queryset()
             self.perform_destroy(queryset)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except (GetObjectException, FilterException) as ex:
+        except (GetObjectException, ModelFilterException) as ex:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
     def perform_destroy(self, instance):
@@ -98,7 +98,7 @@ class CustomSerializationMixin:
 
         if max_level == 0:
             if not self.source:
-                raise FilterException(
+                raise ModelFilterException(
                     model._meta.object_name, "параметр max_level не может быть равен 0"
                 )
             return {"link": self._get_link(instance), "self": None}
