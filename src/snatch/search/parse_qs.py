@@ -1,24 +1,92 @@
 import re
 import typing as t
+from django.db.models import Q, Model
+from snatch.search.validators import (
+    validate_brackets,
+    validate_attributes,
+    validate_operators,
+)
+from snatch.tuples import BracketParser
+from snatch.search.validators import OPERATORS
 
-from snatch.exceptions import BracketsException
-from snatch.tuples import QueryBracket
-from snatch.validators import validate_brackets
+
+class StrongCreator:
+    """Создание сложного запроса с помощью объекта Q
+
+    """
+
+    def __call__(self, parse_data: t.List[t.Dict], model: Model) -> Q:
+        return self._to_Q(parse_data, model)
+
+    def _to_Q(
+        self, data: t.Union[t.List[t.Dict[str, t.Any]]], model: Model, main_key="and"
+    ) -> Q:
+        query = Q()
+        for line in data:
+            key_list = line.keys()
+            for key in key_list:
+                if key in ["and", "not"]:
+                    query &= self._to_Q(line[key], model, main_key=key)
+                elif key in ["or"]:
+                    query |= self._to_Q(line[key], model, main_key=key)
+                else:
+                    item = line.pop(key)
+                    attribute_list = key.split("__")[:-1]
+                    operator = key.split("__")[-1]
+                    validate_attributes(attribute_list, model)
+                    operator, item, is_not = validate_operators(operator, item)
+                    new_key = "{}{}".format(
+                        "__".join(attribute_list), f"__{operator}" if operator else ""
+                    )
+                    line[new_key] = item if not is_not else ~Q(**item)
+
+        if main_key:
+            func = getattr(self, f"_{main_key}_convert", None)
+            query = func(query, data) if func else query
+        return query
+
+    def _and_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
+        result = dict()
+        for line in data:
+            result.update(line)
+        return query & Q(**result)
+
+    def _or_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
+        query |= (Q(**line) for line in data)
+        return query
+
+    def _not_convert(self, query: Q, data: t.List[t.Dict]) -> Q:
+        return ~self._and_convert(query, data)
 
 
-class QSParser:
-    def __call__(self, input_string: t.AnyStr) -> t.List:
-        qb = QueryBracket(input_string, -1, -1, [[]], [])
-        if not validate_brackets(input_string):
-            raise BracketsException(qb.input_string)
+class StrongParser:
+    """Преобразование строки в словарь для фильтрации
+
+    """
+
+    search_with_brackets = "|".join(
+        [
+            f"\.{key}\.$" if value.is_point else f"{key}$"
+            for key, value in OPERATORS.items()
+            if value.is_bracket
+        ]
+    )
+
+    search_without_brackets = "|".join(
+        [f"\.{key}\." for key, value in OPERATORS.items() if value.is_point]
+    )
+
+    def __call__(self, input_string: str) -> t.List[t.Dict]:
+        qb = BracketParser(input_string, -1, -1, [[]], [])
+        validate_brackets(input_string)
         self.search_query(qb)
         return qb.list_stack[0]
 
-    def search_query(self, qb: QueryBracket) -> QueryBracket:
+    def search_query(self, qb: BracketParser) -> BracketParser:
         """Последовательный обход строки относительно скобок
 
         """
-        qb = QueryBracket(
+        qb = BracketParser(
             qb.input_string,
             qb.input_string.find("("),
             qb.input_string.find(")"),
@@ -26,18 +94,17 @@ class QSParser:
             qb.drop_key_stack,
         )
 
-        if qb.num_cls == -1 and qb.num_opn == -1:
-            func = self.without_brackets
-        elif qb.num_opn != -1 and qb.num_opn < qb.num_cls:
+        if qb.num_opn != -1 and qb.num_opn < qb.num_cls:
             func = self.inside_brackets
         elif (qb.num_cls != -1 and qb.num_opn == -1) or qb.num_opn > qb.num_cls:
             func = self.outside_brackets
         else:
-            raise BracketsException(qb.input_string)
+            func = self.without_brackets
+
         qb = func(qb)
         return qb
 
-    def inside_brackets(self, qb: QueryBracket) -> QueryBracket:
+    def inside_brackets(self, qb: BracketParser) -> BracketParser:
         """Обработка ситуации: перед скобкой -> в скобку
 
         """
@@ -51,8 +118,8 @@ class QSParser:
         else:
             qb.drop_key_stack.append(True)
 
-        qb = QueryBracket(
-            qb.input_string[qb.num_opn + 1:],
+        qb = BracketParser(
+            qb.input_string[qb.num_opn + 1 :],
             qb.num_opn,
             qb.num_cls,
             qb.list_stack,
@@ -60,15 +127,15 @@ class QSParser:
         )
         return self.search_query(qb)
 
-    def outside_brackets(self, qb: QueryBracket) -> QueryBracket:
+    def outside_brackets(self, qb: BracketParser) -> BracketParser:
         """Обработка ситуации: в скобке -> из скобки
 
         """
         self._handle_sub(qb.input_string[: qb.num_cls], qb.list_stack[-1])
         qb.drop_key_stack.pop() if True in qb.drop_key_stack else qb.list_stack.pop()
 
-        qb = QueryBracket(
-            qb.input_string[qb.num_cls + 1:],
+        qb = BracketParser(
+            qb.input_string[qb.num_cls + 1 :],
             qb.num_opn,
             qb.num_cls,
             qb.list_stack,
@@ -76,7 +143,7 @@ class QSParser:
         )
         return self.search_query(qb)
 
-    def without_brackets(self, qb: QueryBracket) -> QueryBracket:
+    def without_brackets(self, qb: BracketParser) -> BracketParser:
         """Обработка ситуации: без скобок
 
         """
@@ -95,13 +162,11 @@ class QSParser:
         [current_list.append(x) for x in sub_string] if sub_string else None
         return current_list, possible_key
 
-    @staticmethod
-    def _check_last(sub_string_list: t.List[str]) -> t.Tuple[t.List, str]:
+    def _check_last(self, sub_string_list: t.List[str]) -> t.Tuple[t.List, str]:
         """Получение оператора перед скобками
 
         """
-        search_string = r"\.in\.$|\.between\.$|or$|and$|not$"
-        result = re.search(search_string, sub_string_list[-1])
+        result = re.search(self.search_with_brackets, sub_string_list[-1])
         return (
             (sub_string_list[:-1], sub_string_list[-1])
             if result
@@ -112,18 +177,25 @@ class QSParser:
         """Получение оператора между точками, которые не подразумевают скобки
 
         """
-        search_string = r"\.eq\.|\.gt\.|\.gte\.|\.lt\.|\.lte\.|\.neq\.|\.is\.|\.like\.|\.day\.|\.month\.|\.year\.|\.re\."
-        result = re.search(search_string, sub_string)
+        result = re.search(self.search_without_brackets, sub_string)
         if result:
             return self._handle_operator(sub_string, result.group())
         else:
             return sub_string
 
-    @staticmethod
-    def _handle_operator(column_name_list: str, op: str) -> t.Dict:
+    def _handle_operator(self, column_name_list: str, op: str) -> t.Union[t.Dict, str]:
         """Построение параметра для запроса
 
         """
         column_name_list, search_data = column_name_list.split(op)
         column_name_list = "__".join(column_name_list.split("."))
-        return {"{}__{}".format(column_name_list, op[1:-1]): search_data}
+        if search_data:
+            return {"{}__{}".format(column_name_list, op[1:-1]): search_data}
+        else:
+            return "{}__{}".format(column_name_list, op[1:-1])
+
+
+if __name__ == "__main__":
+    a = StrongParser()
+    string = "and(p.eq.123,or(p.in.(1,2,3),abw.between.(578,587),a.p.eq.9))"
+    result = a(string)

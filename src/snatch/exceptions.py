@@ -19,25 +19,53 @@ class GetObjectException(Exception):
         return f"<GetObjectException> Ошибка получения объекта из модели {self.class_name}: {self.message}."
 
 
-class FilterException(Exception):
-    """ Ошибка при построении параметров фильтрации. """
-
+class ModelFilterException(Exception):
     def __init__(self, class_name, ex):
         self.class_name = class_name
         self.ex = ex
 
     def __str__(self):
-        return f"<FilterException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
+        return f"<ModelFilterException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
 
 
-class BracketsException(Exception):
-    """ Ошибка при валидации скобок"""
+class FilterException(Exception):
+    """ Ошибка при построении параметров фильтрации. """
 
     def __init__(self, input_string):
         self.input_string = input_string
 
+
+class BracketsError(FilterException):
+    """ Ошибка при валидации скобок. """
+
     def __str__(self):
-        if self.input_string:
-            return f"невалидное количество скобок в подстроке {self.input_string}"
-        else:
-            return f"невалидное количество скобок в подстроке"
+        return f"<BracketsError> Невалидное количество скобок в строке {self.input_string}."
+
+
+class AttributesException(FilterException):
+    """ Ошибка при валидации атрибутов модели. """
+
+    def __init__(self, attribute, model_name):
+        self.attribute = attribute
+        self.model_name = model_name
+
+
+class OperatorsException(FilterException):
+    def __init__(self, operator, value):
+        self.operator = operator
+        self.value = value
+
+
+class EndAttributeError(AttributesException):
+    def __str__(self):
+        return f"<EndAttributeError> Атрибут {self.attribute} является конечной точкой поиска."
+
+
+class NoAttributeInModelError(AttributesException):
+    def __str__(self):
+        return f"<NoAttributeInModelError> Не существует атрибута {self.attribute} в модели {self.model_name}."
+
+
+class NotValidOperatorError(OperatorsException):
+    def __str__(self):
+        return f"<NotValidOperatorError> Неверная оператор для фильтрации: {self.operator}."

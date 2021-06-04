@@ -5,29 +5,7 @@ from django.db.models import Q
 from rest_framework.exceptions import APIException
 
 from snatch.old.exceptions import FilterParseException
-from .parse_qs import QSParser
-
-FILTER_CONDITION = ["and", "or", "not"]
-
-FILTER_INSTANCE = {
-    "eq": "exact",
-    "gt": "gt",
-    "gte": "gte",
-    "lt": "lt",
-    "lte": "lte",
-    "like": "contains",
-    "re": "regex",
-    "in": "in",
-    "is": "is",
-    "year": "year",
-    "month": "month",
-    "day": "day",
-    "ov": "overlap",
-    "between": "range",
-    "asc": "",
-    "desc": "-",
-    "isnull": "isnull",
-}
+from snatch.search.parse_qs import StrongParser
 
 
 def filter_for_model(**kwargs):
@@ -63,8 +41,7 @@ def filter_for_model(**kwargs):
 
             value = "{}({})".format(main_key, value)
 
-            parse_dict = QSParser(value)
-            parse_dict = parse_dict.result
+            parse_dict = StrongParser(value)
             filter_info = to_Q(parse_dict, model, main_key)
 
         order_info = list()
@@ -127,100 +104,6 @@ def filter_for_model(**kwargs):
         raise APIException(ex)
     except Exception as ex:
         raise APIException("Неизвестная ошибка: {}".format(ex))
-
-
-def check_attribute_array(attribute_list, model):
-    """
-    Проверка на валидность списка атрибутов для поиска
-    :return: -
-    """
-    for i in range(len(attribute_list)):
-        attribute = attribute_list[i]
-        if "pk" == attribute:
-            attribute = model._meta.pk.name
-        field_list = [field.name for field in model._meta.get_fields()]
-        # Если атрибут существует в списке атрибутов модели, значит все верно
-        if attribute in field_list:
-            field = model._meta.get_field(attribute)
-            # Если атрибут является ссылкой, то сохраняем модель, на которую ссылается атрибут
-            # Иначе атрибут не является ссылкой, значит либо данный атрибут в списке последний и все хорошо,
-            # либо атрибут не последний и пользователь ошибся с параметрами
-            # фильтрации
-            if field.many_to_one or field.one_to_many:
-                model = field.related_model
-            else:
-                if i != len(attribute_list) - 1:
-                    raise FilterParseException(
-                        "Атрибут {} является конечной точкой поиска".format(attribute)
-                    )
-                else:
-                    return True
-        else:
-            raise FilterParseException(
-                "Не существует атрибута {} в информационном ресурсе {}".format(
-                    attribute, model._meta.verbose_name
-                )
-            )
-    return True
-
-
-def like_resolver(value):
-    """
-    Эта функция запускается в случае если оригинальный operator == 'like'.
-    Производится проверка value на наличие звездочки и выбор соответствующего ключевого слова для operator
-    *dir = endswith
-    dir* = startswith
-    *dir* = contains
-    dir = exact
-
-    :param value:
-    :return: (ключевое_слово_operator'а, очищенное_от_звездочек_value)
-    """
-    lookups = [
-        (r"^[^\*]*$", "exact", value),
-        (r"^\*.*\*$", "contains", value[1:-1]),
-        (r"^\*.*$", "endswith", value[1:]),
-        (r"^.*\*$", "startswith", value[:-1]),
-    ]
-    for pattern, operator, val in lookups:
-        if search(pattern, value):
-            return operator, val
-
-
-def check_operator(operator, value):
-    """
-    Проверка на валидность оператора
-    :return: -
-    """
-    if operator not in FILTER_INSTANCE.keys():
-        raise FilterParseException(
-            "Неверная операция фильтрации {}. Введите одно из значений: {}".format(
-                operator, ", ".join(FILTER_INSTANCE.keys())
-            )
-        )
-    if value in ["desc", "asc"]:
-        operator = value
-    elif operator == "is":
-        ntf = {"true": ["", True], "false": ["", False], "null": ["isnull", True]}
-        if value in ntf.keys():
-            operator, value = ntf[value]
-        else:
-            raise FilterParseException(
-                "Неверные параметры фильтрации: для оператора is значение должно быть равно {}".format(
-                    ", ".join(ntf.keys())
-                )
-            )
-
-    elif operator == "eq" and value == "null":
-        operator, value = "isnull", True
-
-    elif operator == "like":
-        operator, value = like_resolver(value)
-
-    else:
-        operator = FILTER_INSTANCE[operator]
-
-    return operator, value
 
 
 def to_Q(data, model, main_key):
