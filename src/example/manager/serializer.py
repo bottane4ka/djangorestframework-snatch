@@ -1,6 +1,7 @@
 from rest_framework_recursive.fields import RecursiveField
 
 from snatch.serializers import CustomSerializer
+from snatch.fields import CustomListField
 from manager.models import ActionModel
 from manager.models import BaseTaskLogModel
 from manager.models import BaseTaskModel
@@ -31,6 +32,8 @@ class BaseTaskLogSerializer(CustomSerializer):
 
 
 class TaskSerializer(CustomSerializer):
+    action_list = CustomListField(child=RecursiveField())
+
     class Meta:
         model = TaskModel
         fields = "__all__"

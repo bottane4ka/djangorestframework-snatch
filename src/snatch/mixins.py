@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+from django.db.models import Manager
 from rest_framework import status, mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
@@ -129,4 +130,26 @@ class CustomSerializationMixin:
         pk_name = instance._meta.pk.name
         table_schema, table_name = self.Meta.model._meta.db_table.split('"."')
         url = reverse(f"{table_schema}_{table_name}_detail")
-        return f"{url}?{pk_name}={instance.pk}"
+        return f"{url}?query={pk_name}.eq.{instance.pk}"
+
+
+class CustomListFieldMixin:
+    def to_representation(self, data):
+        iterable = data.all() if isinstance(data, Manager) else data
+        if self.parent:
+            self_list = None
+            count = data.all().count()
+            if self.context["max_level"] != 0:
+                self_list = list()
+                for item in iterable:
+                    self_list.append(self.child.to_representation(item))
+
+            return {"link": self._get_link_many(data.instance, data.field) if count > 0 else None, "self": self_list if self_list else None}
+        return [
+                self.child.to_representation(item) for item in iterable
+            ]
+
+    def _get_link_many(self, instance, field):
+        table_schema, table_name = field.model._meta.db_table.split('"."')
+        url = reverse(f"{table_schema}_{table_name}_list")
+        return f"{url}?query={field.name}.eq.{instance.pk}"

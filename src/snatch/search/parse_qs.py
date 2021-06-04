@@ -46,9 +46,11 @@ class StrongCreator:
                     else:
                         line.update({new_key: item})
 
-        if main_key and data:
+        if main_key:
             func = getattr(self, f"_{main_key}_convert", None)
             query = func(query, data) if func else query
+        if not query:
+            query = self._and_convert(query, data)
         return query
 
     def _to_Q_order(self, data: t.List[str], model: type(Model)) -> t.List[str]:
