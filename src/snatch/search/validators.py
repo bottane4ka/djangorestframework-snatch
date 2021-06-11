@@ -71,7 +71,10 @@ def convert_operator(operator: str, value: t.Any) -> t.Tuple[str, t.Any, bool]:
     Returns:
         оператор, значение оператора, признак отрицания
     """
-    if f"\.{operator}\." not in DEFAULT_OPERATORS and f"\.{operator}" not in DEFAULT_OPERATORS:
+    if (
+        f"\.{operator}\." not in DEFAULT_OPERATORS
+        and f"\.{operator}" not in DEFAULT_OPERATORS
+    ):
         raise NotValidOperatorError(operator, value)
     func = getattr(converters, f"{operator}_convert", None)
     is_not = False

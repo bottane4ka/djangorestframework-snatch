@@ -1,10 +1,20 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, ListSerializer
 
-from snatch.mixins import CustomSerializationMixin, CustomDeserializationMixin
+from snatch.mixins import (
+    SnatchSerializationMixin,
+    SnatchDeserializationMixin,
+    SnatchListSerializerMixin,
+)
 
 
-class CustomSerializer(
-    CustomDeserializationMixin, CustomSerializationMixin, ModelSerializer
+class SnatchSerializer(
+    SnatchDeserializationMixin, SnatchSerializationMixin, ModelSerializer
 ):
-    pass
+    @classmethod
+    def many_init(cls, *args, **kwargs):
+        kwargs["child"] = cls()
+        return SnatchListSerializer(*args, **kwargs)
 
+
+class SnatchListSerializer(SnatchListSerializerMixin, ListSerializer):
+    pass

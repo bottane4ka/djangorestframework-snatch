@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from django.db.models import Manager
+from django.http import HttpResponseRedirect
 from rest_framework import status, mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
@@ -8,14 +9,16 @@ from rest_framework.relations import PKOnlyObject
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from .exceptions import GetObjectException, ModelFilterException
+from snatch.exceptions import GetObjectException, ModelFilterException
+from snatch.options.info import SnatchInfo
+from snatch.wrappers import add_link_many, add_link_one
 
 
-class CustomCreateModelMixin(mixins.CreateModelMixin):
+class SnatchCreateModelMixin(mixins.CreateModelMixin):
     pass
 
 
-class CustomRetrieveModelMixin:
+class SnatchRetrieveModelMixin:
     def retrieve(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -25,7 +28,7 @@ class CustomRetrieveModelMixin:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
 
-class CustomListModelMixin:
+class SnatchListModelMixin:
     def list(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -34,8 +37,16 @@ class CustomListModelMixin:
         except (GetObjectException, ModelFilterException) as ex:
             return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
+    def size(self, request, *args, **kwargs):
+        try:
+            queryset = self.get_queryset()
+            count = queryset.count() if queryset else 0
+            return Response(count, status=status.HTTP_200_OK)
+        except (GetObjectException, ModelFilterException) as ex:
+            return Response(data={"detail": str(ex)}, status=status.HTTP_404_NOT_FOUND)
 
-class CustomUpdateModelMixin:
+
+class SnatchUpdateModelMixin:
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_queryset(**kwargs)
@@ -50,7 +61,7 @@ class CustomUpdateModelMixin:
         serializer.save()
 
 
-class CustomDestroyModelMixin:
+class SnatchDestroyModelMixin:
     def destroy(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -63,7 +74,41 @@ class CustomDestroyModelMixin:
         instance.delete()
 
 
-class CustomDeserializationMixin:
+class SnatchInfoModelMixin:
+    info_class = SnatchInfo
+
+    def info(self, request, *args, **kwargs):
+        data = self.info_class().determine_metadata(request, self)
+        return Response(data, status=status.HTTP_200_OK)
+
+    def info_redirect(self, request, *args, **kwargs):
+        field_name = kwargs.get("pk")
+        field_info = self.info_class().get_field_info_by_name(self, field_name)
+        if not field_info:
+            return Response(
+                {"detail": f"Атрибута {field_name} не существует"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        reference = field_info.get("reference")
+        if not reference:
+            return Response(field_info, status=status.HTTP_200_OK)
+        params = request.query_params
+        view_name = f"{reference['schema']}_{reference['systemName']}_list"
+        if params:
+            params = ["{}={}".format(key, params[key]) for key in params.keys()]
+            url = "{}?{}".format(reverse(view_name), "&".join(params))
+        else:
+            url = reverse(view_name)
+        return HttpResponseRedirect(url)
+
+
+class SnatchOptionsModelMixin:
+    def options(self, request, *args, **kwargs):
+        data = self.info_class().determine_metadata(request, self)
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class SnatchDeserializationMixin:
     def run_validation(self, data):
         model_field = (
             self.parent.Meta.model._meta.get_field(self.source) if self.parent else None
@@ -85,46 +130,37 @@ class CustomDeserializationMixin:
                     detail=f"Destination {data} matching query does not exist."
                 )
         else:
-            validated_value = super(CustomDeserializationMixin, self).run_validation(
+            validated_value = super(SnatchDeserializationMixin, self).run_validation(
                 data
             )
 
         return validated_value
 
 
-class CustomSerializationMixin:
+class SnatchSerializationMixin:
+    @add_link_one
     def to_representation(self, instance):
-        max_level = int(self.context.get("max_level", 1))
-        model = instance._meta.model
-
-        if max_level == 0:
-            if not self.source:
-                raise ModelFilterException(
-                    model._meta.object_name, "параметр max_level не может быть равен 0"
-                )
-            return {"link": self._get_link(instance), "self": None}
-
-        self.context["max_level"] = max_level - 1
         ret = OrderedDict()
         fields = self._readable_fields
-
+        model = instance._meta.model
         for field in fields:
             try:
                 attribute = field.get_attribute(instance)
             except SkipField:
                 continue
-            model_field = model._meta.get_field(field.field_name)
+
             check_for_none = (
                 attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
             )
             if check_for_none is None:
+                model_field = model._meta.get_field(field.source)
                 ret[field.field_name] = (
                     {"link": None, "self": None} if model_field.is_relation else None
                 )
             else:
                 ret[field.field_name] = field.to_representation(attribute)
-        self.context["max_level"] += 1
-        return {"link": self._get_link(instance), "self": ret} if self.source else ret
+
+        return ret
 
     def _get_link(self, instance):
         pk_name = instance._meta.pk.name
@@ -133,23 +169,15 @@ class CustomSerializationMixin:
         return f"{url}?query={pk_name}.eq.{instance.pk}"
 
 
-class CustomListFieldMixin:
+class SnatchListSerializerMixin:
+    @add_link_many
     def to_representation(self, data):
         iterable = data.all() if isinstance(data, Manager) else data
-        if self.parent:
-            self_list = None
-            count = data.all().count()
-            if self.context["max_level"] != 0:
-                self_list = list()
-                for item in iterable:
-                    self_list.append(self.child.to_representation(item))
 
-            return {"link": self._get_link_many(data.instance, data.field) if count > 0 else None, "self": self_list if self_list else None}
-        return [
-                self.child.to_representation(item) for item in iterable
-            ]
+        return [self.child.to_representation(item) for item in iterable]
 
-    def _get_link_many(self, instance, field):
-        table_schema, table_name = field.model._meta.db_table.split('"."')
-        url = reverse(f"{table_schema}_{table_name}_list")
-        return f"{url}?query={field.name}.eq.{instance.pk}"
+    def run_validation(self, data=empty):
+        related_manager = getattr(self.parent.instance, self.source, None)
+        value = related_manager.all()
+        self.run_validators(value)
+        return value

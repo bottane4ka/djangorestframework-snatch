@@ -1,13 +1,15 @@
 import re
 import typing as t
+
 from django.db.models import Q, Model
+
+from snatch.search.operators.consts import DEFAULT_OPERATORS
 from snatch.search.validators import (
     validate_brackets,
     validate_attributes,
     convert_operator,
 )
 from snatch.tuples import BracketParser
-from snatch.search.operators.consts import DEFAULT_OPERATORS
 
 
 class StrongCreator:
@@ -23,7 +25,9 @@ class StrongCreator:
             return self._to_Q_filter(parse_data, model)
         return self._to_Q_order(parse_data, model)
 
-    def _to_Q_filter(self, data: t.List[t.Dict[str, t.Any]], model: type(Model), main_key=None) -> Q:
+    def _to_Q_filter(
+        self, data: t.List[t.Dict[str, t.Any]], model: type(Model), main_key=None
+    ) -> Q:
         query = Q()
         for line in data:
             key_list = list(line.keys())
@@ -59,7 +63,9 @@ class StrongCreator:
             attribute_list = line.split("__")[:-1]
             operator = line.split("__")[-1]
             validate_attributes(attribute_list, model)
-            operator, item, is_not = convert_operator(operator, "__".join(attribute_list))
+            operator, item, is_not = convert_operator(
+                operator, "__".join(attribute_list)
+            )
             order_.append(operator)
         return order_
 
@@ -94,7 +100,9 @@ class StrongParser:
 
     search_order = "|".join([key for key in DEFAULT_OPERATORS if key.count(".") == 1])
 
-    def __call__(self, input_string: str, model: type(Model), is_filter=True) -> t.List[t.Union[t.Dict, str]]:
+    def __call__(
+        self, input_string: str, model: type(Model), is_filter=True
+    ) -> t.List[t.Union[t.Dict, str]]:
         self.model = model
         self.is_filter = is_filter
         qb = BracketParser(input_string, -1, -1, [[]], [])
@@ -215,7 +223,11 @@ class StrongParser:
         attribute_list, search_data = attribute_list.split(operator)
         attribute_list = attribute_list.split(".")
         if search_data:
-            return {"{}__{}".format("__".join(attribute_list), operator.replace(".", "")): search_data}
+            return {
+                "{}__{}".format(
+                    "__".join(attribute_list), operator.replace(".", "")
+                ): search_data
+            }
         else:
             return "{}__{}".format("__".join(attribute_list), operator.replace(".", ""))
 

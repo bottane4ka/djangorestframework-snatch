@@ -6,7 +6,7 @@ from rest_framework.settings import api_settings
 Route = namedtuple("Route", ["url", "mapping", "name", "detail", "initkwargs"])
 
 
-class CustomRouter(SimpleRouter):
+class SnatchRouter(SimpleRouter):
 
     routes = [
         # List route.
@@ -17,7 +17,13 @@ class CustomRouter(SimpleRouter):
             detail=False,
             initkwargs={"suffix": "List"},
         ),
-        # Detail route.
+        Route(
+            url=r"^{prefix}/size$",
+            mapping={"get": "size"},
+            name="{basename}_size",
+            detail=False,
+            initkwargs={"suffix": "Size"},
+        ),
         Route(
             url=r"^{prefix}/$",
             mapping={
@@ -29,6 +35,20 @@ class CustomRouter(SimpleRouter):
             name="{basename}_detail",
             detail=True,
             initkwargs={"suffix": "Instance"},
+        ),
+        Route(
+            url=r"^{prefix}/info/$",
+            mapping={"get": "info"},
+            name="{basename}_info",
+            detail=True,
+            initkwargs={"suffix": "Info"},
+        ),
+        Route(
+            url=r"^{prefix}/info/{lookup}$",
+            mapping={"get": "info_redirect"},
+            name="{basename}_redirect",
+            detail=True,
+            initkwargs={},
         ),
     ]
 

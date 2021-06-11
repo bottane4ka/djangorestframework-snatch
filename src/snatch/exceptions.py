@@ -28,7 +28,7 @@ class ModelFilterException(Exception):
         self.ex = ex
 
     def __str__(self):
-        return f"<ModelFilterException> Ошибка в параметрах фильтрации для модели {self.class_name}.\n{self.ex}."
+        return f"<ModelFilterException> Ошибка в параметрах фильтрации для модели {self.class_name}: {self.ex}."
 
 
 class FilterException(Exception):
