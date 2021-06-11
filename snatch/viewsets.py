@@ -11,7 +11,7 @@ from snatch.search.parse_qs import StrongCreator
 
 class SnatchGenericViewSet(GenericViewSet):
 
-    page_size = settings.REST_FRAMEWORK.get("PAGE_SIZE", 20)
+    page_size = settings.SNATCH_FRAMEWORK.get("PAGE_SIZE", 20)
 
     def get_params(self):
         params = {

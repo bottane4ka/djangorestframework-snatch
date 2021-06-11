@@ -9,7 +9,7 @@ from snatch.search.validators import (
     validate_attributes,
     convert_operator,
 )
-from snatch.tuples import BracketParser
+from snatch.search.tuples import BracketParser
 
 
 class StrongCreator:
