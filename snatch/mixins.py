@@ -15,10 +15,16 @@ from snatch.wrappers import add_link_many, add_link_one
 
 
 class SnatchCreateModelMixin(mixins.CreateModelMixin):
+    """Создание объекта модели
+
+    """
     pass
 
 
 class SnatchRetrieveModelMixin:
+    """Получение объекта модели
+
+    """
     def retrieve(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -29,6 +35,9 @@ class SnatchRetrieveModelMixin:
 
 
 class SnatchListModelMixin:
+    """Получение списка объектов и их количества в списке
+
+    """
     def list(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -47,6 +56,9 @@ class SnatchListModelMixin:
 
 
 class SnatchUpdateModelMixin:
+    """Обновление объекта модели
+
+    """
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_queryset(**kwargs)
@@ -62,6 +74,9 @@ class SnatchUpdateModelMixin:
 
 
 class SnatchDestroyModelMixin:
+    """Удаление объекта модели
+
+    """
     def destroy(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -75,10 +90,13 @@ class SnatchDestroyModelMixin:
 
 
 class SnatchInfoModelMixin:
+    """Получение информации о таблице с возможностью редиректа на родительскую таблицу
+
+    """
     info_class = SnatchInfo
 
     def info(self, request, *args, **kwargs):
-        data = self.info_class().determine_metadata(request, self)
+        data = self.info_class().determine_metadata(self)
         return Response(data, status=status.HTTP_200_OK)
 
     def info_redirect(self, request, *args, **kwargs):
@@ -103,12 +121,19 @@ class SnatchInfoModelMixin:
 
 
 class SnatchOptionsModelMixin:
+    """Получение информации через HTTP метод OPTIONS
+
+    """
     def options(self, request, *args, **kwargs):
-        data = self.info_class().determine_metadata(request, self)
+        data = self.info_class().determine_metadata(self)
         return Response(data, status=status.HTTP_200_OK)
 
 
 class SnatchDeserializationMixin:
+    """Десериализация объектов модели с учетом self и link.
+    Преобразование вложенных структур в объекты модели.
+
+    """
     def run_validation(self, data):
         model_field = (
             self.parent.Meta.model._meta.get_field(self.source) if self.parent else None
@@ -138,6 +163,9 @@ class SnatchDeserializationMixin:
 
 
 class SnatchSerializationMixin:
+    """Сериализация объекта модели с добавлением self и link.
+
+    """
     @add_link_one
     def to_representation(self, instance):
         ret = OrderedDict()
@@ -162,14 +190,11 @@ class SnatchSerializationMixin:
 
         return ret
 
-    def _get_link(self, instance):
-        pk_name = instance._meta.pk.name
-        table_schema, table_name = self.Meta.model._meta.db_table.split('"."')
-        url = reverse(f"{table_schema}_{table_name}_detail")
-        return f"{url}?query={pk_name}.eq.{instance.pk}"
-
 
 class SnatchListSerializerMixin:
+    """Сериализация списка объектов модели с добавлением self и link.
+
+    """
     @add_link_many
     def to_representation(self, data):
         iterable = data.all() if isinstance(data, Manager) else data

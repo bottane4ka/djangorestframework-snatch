@@ -46,7 +46,7 @@ def is_convert(value):
     ntf = {"true": ["", True], "false": ["", False], "null": ["isnull", True]}
     if value in ntf.keys():
         operator, value = ntf[value]
-    return "is", value, False
+    return operator, value, False
 
 
 def year_convert(value):

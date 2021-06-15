@@ -1,7 +1,9 @@
 import os
 import configparser
 
-config_file = os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))) + "/env.ini"
+config_file = (
+    os.path.dirname(os.path.abspath(os.path.join(__file__, ".."))) + "/env.ini"
+)
 config = configparser.ConfigParser()
 config.read(config_file)
 
@@ -64,9 +66,7 @@ DATABASES = {
     }
 }
 
-SNATCH_FRAMEWORK = {
-    "PAGE_SIZE": 20,
-}
+SNATCH_FRAMEWORK = {"PAGE_SIZE": 20}
 
 LANGUAGE_CODE = "ru-RU"
 TIME_ZONE = "Europe/Moscow"

@@ -111,9 +111,6 @@ class StrongParser:
         return qb.list_stack[0]
 
     def search_query(self, qb: BracketParser) -> BracketParser:
-        """Последовательный обход строки относительно скобок
-
-        """
         qb = BracketParser(
             qb.input_string,
             qb.input_string.find("("),
@@ -133,9 +130,6 @@ class StrongParser:
         return qb
 
     def inside_brackets(self, qb: BracketParser) -> BracketParser:
-        """Обработка ситуации: перед скобкой -> в скобку
-
-        """
         current_list, key_exists = self._handle_sub(
             qb.input_string[: qb.num_opn], qb.list_stack[-1]
         )
@@ -156,9 +150,6 @@ class StrongParser:
         return self.search_query(qb)
 
     def outside_brackets(self, qb: BracketParser) -> BracketParser:
-        """Обработка ситуации: в скобке -> из скобки
-
-        """
         self._handle_sub(qb.input_string[: qb.num_cls], qb.list_stack[-1])
         qb.drop_key_stack.pop() if True in qb.drop_key_stack else qb.list_stack.pop()
 
@@ -172,18 +163,12 @@ class StrongParser:
         return self.search_query(qb)
 
     def without_brackets(self, qb: BracketParser) -> BracketParser:
-        """Обработка ситуации: без скобок
-
-        """
         self._handle_sub(qb.input_string, qb.list_stack[-1])
         return qb
 
     def _handle_sub(
         self, sub_string: str, current_list: t.List
     ) -> t.Tuple[t.List, str]:
-        """Обработка подстроки между скобками
-
-        """
         sub_string, possible_key = self._check_last(sub_string.split(","))
         sub_string = [x for x in [self._find_token(y) for y in sub_string] if x]
         possible_key = self._find_token(possible_key) if possible_key else possible_key
@@ -191,9 +176,6 @@ class StrongParser:
         return current_list, possible_key
 
     def _check_last(self, sub_string_list: t.List[str]) -> t.Tuple[t.List, str]:
-        """Получение оператора перед скобками
-
-        """
         result = re.search(self.search_with_brackets, sub_string_list[-1])
         return (
             (sub_string_list[:-1], sub_string_list[-1])
@@ -202,9 +184,6 @@ class StrongParser:
         )
 
     def _find_token(self, sub_string: str) -> t.Union[t.Dict, str]:
-        """Получение оператора между точками, которые не подразумевают скобки
-
-        """
         if self.is_filter:
             result = re.search(self.search_without_brackets, sub_string)
         else:
@@ -217,9 +196,6 @@ class StrongParser:
     def _handle_operator(
         self, attribute_list: str, operator: str
     ) -> t.Union[t.Dict, str]:
-        """Построение параметра для запроса
-
-        """
         attribute_list, search_data = attribute_list.split(operator)
         attribute_list = attribute_list.split(".")
         if search_data:
@@ -230,11 +206,3 @@ class StrongParser:
             }
         else:
             return "{}__{}".format("__".join(attribute_list), operator.replace(".", ""))
-
-
-if __name__ == "__main__":
-    a = StrongParser()
-    # string = "and(p.eq.123,or(p.in.(1,2,3),abw.between.(578,587),a.p.eq.9))"
-    string = "p.desc,q.asc"
-    result = a(string, is_filter=False)
-    print(result)

@@ -7,9 +7,23 @@ Route = namedtuple("Route", ["url", "mapping", "name", "detail", "initkwargs"])
 
 
 class SnatchRouter(SimpleRouter):
+    """Snatch роутер для получения эндпойнтов в следующей нотации:
+        - table_schema/table_name/list
+            - GET - получение списка объектов
+        - table_schema/table_name/size
+            - GET - получение количества объектов в списке
+        - table_schema/table_name/
+            - GET - получение объекта
+            - POST - создание объекта
+            - PUT - изменение объекта
+            - DELETE - удаление объекта
+        - table_schema/table_name/info/
+            - GET - получение информации о таблице
+        - table_schema/table_name/info/table_attribute
+            - GET - редирект на список элементов из родительской таблицы (если поля является ссылкой)
 
+    """
     routes = [
-        # List route.
         Route(
             url=r"^{prefix}/list$",
             mapping={"get": "list"},
@@ -60,6 +74,14 @@ class SnatchRouter(SimpleRouter):
         super().__init__(*args, **kwargs)
 
     def register_all(self, views):
+        """Инициация всех эндпойнтов по списку представлений
+
+        Args:
+            views: список представлений
+
+        Returns:
+
+        """
         for view_name in views.__dict__:
             if "__" in view_name:
                 continue

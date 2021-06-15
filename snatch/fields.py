@@ -4,6 +4,9 @@ from snatch.wrappers import add_link_many
 
 
 class SnatchSerializerMethodField(Field):
+    """Метод сериализатора, который оборачивает данные в self и link.
+
+    """
     def __init__(self, method_name=None, source=None, **kwargs):
         self.method_name = method_name
         kwargs["source"] = "*"

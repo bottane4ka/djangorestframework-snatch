@@ -10,6 +10,9 @@ from snatch.mixins import (
 class SnatchSerializer(
     SnatchDeserializationMixin, SnatchSerializationMixin, ModelSerializer
 ):
+    """Snatch сериализатор
+
+    """
     @classmethod
     def many_init(cls, *args, **kwargs):
         kwargs["child"] = cls()
@@ -17,4 +20,7 @@ class SnatchSerializer(
 
 
 class SnatchListSerializer(SnatchListSerializerMixin, ListSerializer):
+    """Snatch сериализатор для списка
+
+    """
     pass

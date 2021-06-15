@@ -10,10 +10,17 @@ from snatch.search.parse_qs import StrongCreator
 
 
 class SnatchGenericViewSet(GenericViewSet):
+    """Snatch представление для преобразования параметров запроса.
 
+    """
     page_size = settings.SNATCH_FRAMEWORK.get("PAGE_SIZE", 20)
 
-    def get_params(self):
+    def get_params(self) -> t.Dict:
+        """Получение параметров запроса
+
+        Returns:
+            словарь с параметрами запроса
+        """
         params = {
             "query": self.request.query_params.get("query", None),
             "order": self.request.query_params.get("order", None),
@@ -28,7 +35,12 @@ class SnatchGenericViewSet(GenericViewSet):
         }
         return params
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
+        """Получение Queryset с учетом параметров фильтрации
+
+        Returns:
+             Queryset для десериализации
+        """
         queryset = GenericViewSet.get_queryset(self)
         model = queryset.model
         params = self.get_params()
@@ -38,7 +50,12 @@ class SnatchGenericViewSet(GenericViewSet):
 
         return self._init_router(params["many"])(queryset, params, filter_)
 
-    def get_serializer_context(self):
+    def get_serializer_context(self) -> t.Dict:
+        """Создание контекста для сериализатора
+
+        Returns:
+            контекст для сериализатора
+        """
         params = self.get_params()
         data = {key: params[key] for key in ["max_level", "level"] if key in params}
         data.update(
@@ -47,6 +64,15 @@ class SnatchGenericViewSet(GenericViewSet):
         return data
 
     def _get_filter(self, params: t.Dict, model: Model) -> Q:
+        """Получение параметров фильтрации для соответствующей модели в нотации Django
+
+        Args:
+            params: параметры запроса
+            model: модель, для которой необходимо сделать запрос
+
+        Returns:
+            запрос через Q
+        """
         try:
             filter_string = params.get("query")
             if filter_string:
@@ -55,6 +81,15 @@ class SnatchGenericViewSet(GenericViewSet):
             raise ModelFilterException(model._meta.object_name, ex)
 
     def _get_order(self, params: t.Dict, model: Model) -> t.List[str]:
+        """Получение параметров сортировки для соответствующей модели в нотации Django
+
+        Args:
+            params: параметры запроса
+            model: модель, для которой необходимо сделать сортировку
+
+        Returns:
+            Список полей модели, по которым необходимо сделать сортировку
+        """
         try:
             order_string = params.get("order")
             if order_string:
@@ -63,9 +98,27 @@ class SnatchGenericViewSet(GenericViewSet):
             raise ModelFilterException(model._meta.object_name, ex)
 
     def _init_router(self, many) -> t.Callable:
+        """Маршрутизатор для получения метода в зависимости от параметра many
+
+        Args:
+            many: признак множественности
+
+        Returns:
+            функция получения записи/списка Queryset
+        """
         return self._init_one if not many else self._init_many
 
     def _init_one(self, queryset: QuerySet, params: t.Dict, filter_: Q) -> QuerySet:
+        """Метод получения записи из модели с учетом параметров запроса
+
+        Args:
+            queryset: существующее множество записей
+            params: параметры запроса
+            filter_: преобразованные параметры фильтрации
+
+        Returns:
+            запись Queryset
+        """
         model_name = queryset.model._meta.object_name
 
         if not filter_:
@@ -91,6 +144,17 @@ class SnatchGenericViewSet(GenericViewSet):
         return queryset
 
     def _init_many(self, queryset: QuerySet, params: t.Dict, filter_: Q) -> QuerySet:
+        """Метод получения списка записей из модели с учетом параметров запроса
+
+        Args:
+            queryset: существующее множество записей
+            params: параметры запроса
+            filter_: преобразованные параметры фильтрации
+
+        Returns:
+            список записей Queryset
+        """
+
         model_name = queryset.model._meta.object_name
 
         order_ = self._get_order(params, queryset.model)
@@ -117,6 +181,9 @@ class SnatchReadOnlyModelViewSet(
     mixins.SnatchListModelMixin,
     SnatchGenericViewSet,
 ):
+    """Представление только для чтения.
+
+    """
     pass
 
 
@@ -130,4 +197,7 @@ class SnatchModelViewSet(
     mixins.SnatchListModelMixin,
     SnatchGenericViewSet,
 ):
+    """Стандартное представление.
+
+    """
     pass
