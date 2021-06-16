@@ -55,7 +55,7 @@ class SnatchInfo:
             model._meta.db_table
         )
         metadata["attributes"] = self.get_serializer_info(view.get_serializer())
-        metadata["service"] = self._get_methods_info(view)
+        metadata["services"] = self._get_methods_info(view)
         return metadata
 
     def get_serializer_info(self, serializer: serializers.ModelSerializer) -> t.List[OrderedDict]:
@@ -167,7 +167,7 @@ class SnatchInfo:
         Returns:
             схема, наименование таблицы
         """
-        schema = "resource"
+        schema = "public"
         table_name = db_table
         if '"."' in db_table:
             db_table = db_table.split('"."')
