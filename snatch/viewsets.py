@@ -6,14 +6,16 @@ from rest_framework.viewsets import GenericViewSet
 
 from snatch import mixins
 from snatch.exceptions import GetObjectException, ModelFilterException, FilterException
-from snatch.search.parse_qs import StrongCreator
+from snatch.search.parse_qs import StrongCreator, StrongRelations
 
 
 class SnatchGenericViewSet(GenericViewSet):
     """Snatch представление для преобразования параметров запроса.
 
     """
+
     page_size = settings.SNATCH_FRAMEWORK.get("PAGE_SIZE", 20)
+    default_max_level = settings.SNATCH_FRAMEWORK.get("MAX_LEVEL", 3)
 
     def get_params(self) -> t.Dict:
         """Получение параметров запроса
@@ -33,6 +35,9 @@ class SnatchGenericViewSet(GenericViewSet):
             "level": self.request.query_params.get("level", None),
             "many": True if self.action in ["list", "size"] else False,
         }
+        params["level"] = StrongRelations(
+            params["max_level"], params["level"], self.serializer_class()
+        )
         return params
 
     def get_queryset(self) -> QuerySet:
@@ -44,8 +49,17 @@ class SnatchGenericViewSet(GenericViewSet):
         queryset = GenericViewSet.get_queryset(self)
         model = queryset.model
         params = self.get_params()
+        if params.get("max_level") > self.default_max_level:
+            raise ModelFilterException(
+                model._meta.object_name,
+                f"параметр 'max_level' не может быть больше {self.default_max_level}",
+            )
+        if params.get("max_level") <= 0:
+            raise ModelFilterException(
+                model._meta.object_name, "параметр 'max_level' не может быть равен 0"
+            )
         filter_ = self._get_filter(params, model)
-
+        # level_ = self._get_level(params, self.get_serializer())
         # TODO в зависимости от уровня вложенности указывать select_related
 
         return self._init_router(params["many"])(queryset, params, filter_)
@@ -57,10 +71,13 @@ class SnatchGenericViewSet(GenericViewSet):
             контекст для сериализатора
         """
         params = self.get_params()
-        data = {key: params[key] for key in ["max_level", "level"] if key in params}
-        data.update(
-            {"request": self.request, "format": self.format_kwarg, "view": self}
-        )
+        data = {
+            "request": self.request,
+            "format": self.format_kwarg,
+            "view": self,
+            "max_level": params["max_level"],
+            "level": params["level"].relations,
+        }
         return data
 
     def _get_filter(self, params: t.Dict, model: Model) -> Q:
@@ -125,6 +142,12 @@ class SnatchGenericViewSet(GenericViewSet):
             raise GetObjectException(model_name, "no_filter")
 
         error_name = None
+        level_ = params["level"]()
+        if level_[0]:
+            queryset = queryset.select_related(*level_[0])
+        if level_[1]:
+            queryset = queryset.prefetch_related(*level_[1])
+
         if "distinct" in params.keys():
             queryset = queryset.filter(filter_).distinct()
             if queryset.count() == 0:
@@ -157,6 +180,12 @@ class SnatchGenericViewSet(GenericViewSet):
 
         model_name = queryset.model._meta.object_name
 
+        level_ = params["level"]()
+        if level_[0]:
+            queryset = queryset.select_related(*level_[0])
+        if level_[1]:
+            queryset = queryset.prefetch_related(*level_[1])
+
         order_ = self._get_order(params, queryset.model)
         try:
             if filter_:
@@ -184,6 +213,7 @@ class SnatchReadOnlyModelViewSet(
     """Представление только для чтения.
 
     """
+
     pass
 
 
@@ -200,4 +230,5 @@ class SnatchModelViewSet(
     """Стандартное представление.
 
     """
+
     pass

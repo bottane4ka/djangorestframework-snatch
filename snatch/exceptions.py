@@ -24,6 +24,7 @@ class GetObjectException(Exception):
 
 class ModelFilterException(Exception):
     """ Ошибка в параметров фильтрации. """
+
     def __init__(self, class_name, ex):
         self.class_name = class_name
         self.ex = ex
@@ -34,12 +35,14 @@ class ModelFilterException(Exception):
 
 class FilterException(Exception):
     """ Ошибка при построении параметров фильтрации. """
+
     def __init__(self, input_string):
         self.input_string = input_string
 
 
 class BracketsError(FilterException):
     """ Ошибка при валидации скобок. """
+
     def __str__(self):
         return f"<BracketsError> Невалидное количество скобок в строке {self.input_string}."
 
@@ -54,6 +57,7 @@ class AttributesException(FilterException):
 
 class OperatorsException(FilterException):
     """ Ошибка при валидации оператора. """
+
     def __init__(self, operator, value):
         self.operator = operator
         self.value = value
@@ -61,17 +65,20 @@ class OperatorsException(FilterException):
 
 class EndAttributeError(AttributesException):
     """ Ошибка конечной точки поиска. """
+
     def __str__(self):
         return f"<EndAttributeError> Атрибут {self.attribute} является конечной точкой поиска."
 
 
 class NoAttributeInModelError(AttributesException):
     """ Ошибка поиска атрибута в модели. """
+
     def __str__(self):
         return f"<NoAttributeInModelError> Не существует атрибута {self.attribute} в модели {self.model_name}."
 
 
 class NotValidOperatorError(OperatorsException):
     """ Ошибка невалидного оператора в запросе. """
+
     def __str__(self):
         return f"<NotValidOperatorError> Неверная оператор для фильтрации: {self.operator}."

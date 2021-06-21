@@ -1,6 +1,5 @@
 from functools import wraps
 
-from snatch.exceptions import ModelFilterException
 from snatch.utils import get_link_many, get_link_one
 
 
@@ -28,25 +27,35 @@ def add_link_many(func):
     }
 
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         self = args[0]
         data = args[1]
-        old_max_level = self.context.get("max_level")
-
-        result = func(self, data)
-
         if not self.parent:
-            return result
+            return func(self, data)
 
-        link = get_link_many(data.field, data.instance)
-
-        if result and old_max_level > 0:
-            return {"link": link, "self": result if result else None}
-        elif result and old_max_level == 0:
-            return {"link": link, "self": None}
+        source = self.source if self.source else self.context.get("source")
+        level = self.context.pop("level")
+        source_level = level.get(source, None) if level else None
+        if not source_level or source_level["max_level"] < 2:
+            result = {
+                "link": get_link_many(data.field, data.instance)
+                if data.count() > 0
+                else None,
+                "self": None,
+            }
         else:
-            return {"link": None, "self": None}
+            self.context["level"] = source_level.get("children")
+
+            result = func(self, data)
+            result = {
+                "link": get_link_many(data.field, data.instance) if result else None,
+                "self": result if result else None,
+            }
+
+        self.context["level"] = level
+        return result
 
     return wrapper
 
@@ -72,30 +81,38 @@ def add_link_one(func):
     }
 
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         self = args[0]
         value = args[1]
-        old_max_level = self.context.get("max_level", 1)
-        if old_max_level == 0:
-            if not self.source and not self.context.get("is_child", False):
-                raise ModelFilterException(
-                    value._meta.model._meta.object_name,
-                    "параметр 'max_level' не может быть равен 0",
-                )
-            else:
-                return {
-                    "link": get_link_one(self, value) if value else None,
-                    "self": None,
-                }
-        self.context["max_level"] -= 1
-        result = func(self, value)
-        self.context["max_level"] = old_max_level
-        if not self.source and not self.context.get("is_child", False):
-            return result
-        return {
-            "link": get_link_one(self, value) if value else None,
-            "self": result if result else None,
-        }
+        # TODO Тут сломала
+        if "max_level" in self.context.keys():
+            max_level = self.context.pop("max_level")
+            result = func(self, value)
+            self.context["max_level"] = max_level
+            return result if result else None
+
+        source = self.source if self.source else self.context.get("source")
+        level = self.context.pop("level")
+        source_level = level.get(source, level) if level else None
+
+        if not source_level or source_level.get("max_level", 1) == 0:
+            result = {
+                "link": get_link_one(self, value) if value else None,
+                "self": None,
+            }
+        else:
+            self.context["level"] = (
+                source_level.get("children") if self.source else source_level
+            )
+            result = func(self, value)
+            result = {
+                "link": get_link_one(self, value) if value else None,
+                "self": result if result else None,
+            }
+
+        self.context["level"] = level
+        return result
 
     return wrapper

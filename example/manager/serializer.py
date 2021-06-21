@@ -44,9 +44,7 @@ class TaskSerializer(SnatchSerializer):
     action_list = SnatchSerializerMethodField()
 
     def get_action_list(self, instance):
-        context = copy.copy(self.context)
-        context["is_child"] = True
-        return ActionSerializer(instance, many=True, context=context).data
+        return ActionSerializer(instance, many=True, context=self.context).data
 
     class Meta:
         model = TaskModel

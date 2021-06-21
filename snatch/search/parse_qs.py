@@ -206,3 +206,83 @@ class StrongParser:
             }
         else:
             return "{}__{}".format("__".join(attribute_list), operator.replace(".", ""))
+
+
+class StrongRelations:
+    def __init__(self, max_level: int, level: str, serializer):
+        self.relations = self._get_relations(max_level, level, serializer)
+
+    def __call__(self):
+        return self._convert(self.relations)
+
+    def _get_relations(self, max_level: int, level: str, serializer) -> t.Dict:
+        relations = dict()
+        if not level and max_level > 0:
+            relations = self._create_by_max_level(
+                max_level, serializer.Meta.model, serializer
+            )
+        return relations
+
+    def _create_by_max_level(
+        self, max_level: int, model: type(Model), serializer
+    ) -> t.Dict:
+        relations = dict()
+        if not hasattr(serializer, "fields"):
+            serializer = (
+                serializer.proxied
+                if hasattr(serializer, "proxied")
+                else serializer.root
+            )
+        model_field_list = [
+            (field, serializer.fields[field.name])
+            for field in model._meta.get_fields()
+            if field.name in serializer.fields.keys() and field.is_relation
+        ]
+        if model_field_list:
+            for field, serializer in model_field_list:
+                prefetch_related = (
+                    True if field.many_to_many or field.one_to_many else False
+                )
+                new_max_level = max_level if prefetch_related else max_level - 1
+                children = None
+                if max_level - 1 > 0:
+                    children = self._create_by_max_level(
+                        max_level - 1, field.related_model, serializer
+                    )
+                relations[field.name] = {
+                    "prefetch_related": prefetch_related,
+                    "max_level": new_max_level,
+                    "children": children,
+                }
+        return relations if relations else None
+
+    def _convert(
+        self, relations: t.Dict, enter=True
+    ) -> t.Tuple[t.List[str], t.List[str]]:
+        select_related = list()
+        prefetch_related = list()
+        for key, item in relations.items():
+            new_enter = True if not item["prefetch_related"] else False
+            if item["max_level"] >= 0 and item["children"] and enter:
+                child_select_related, child_prefetch_related = self._convert(
+                    item["children"], enter=new_enter
+                )
+                if child_select_related and not item["prefetch_related"]:
+                    select_related.extend(
+                        [f"{key}__{name}" for name in child_select_related]
+                    )
+                elif child_select_related and item["prefetch_related"]:
+                    prefetch_related.extend(
+                        [f"{key}__{name}" for name in child_select_related]
+                    )
+                elif child_prefetch_related:
+                    prefetch_related.extend(
+                        [f"{key}__{name}" for name in child_prefetch_related]
+                    )
+            else:
+                if not item["prefetch_related"]:
+                    select_related.extend([key])
+                else:
+                    prefetch_related.extend([key])
+
+        return select_related, prefetch_related

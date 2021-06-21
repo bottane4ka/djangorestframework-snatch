@@ -23,6 +23,7 @@ class SnatchRouter(SimpleRouter):
             - GET - редирект на список элементов из родительской таблицы (если поля является ссылкой)
 
     """
+
     routes = [
         Route(
             url=r"^{prefix}/list$",

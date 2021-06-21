@@ -58,7 +58,9 @@ class SnatchInfo:
         metadata["services"] = self._get_methods_info(view)
         return metadata
 
-    def get_serializer_info(self, serializer: serializers.ModelSerializer) -> t.List[OrderedDict]:
+    def get_serializer_info(
+        self, serializer: serializers.ModelSerializer
+    ) -> t.List[OrderedDict]:
         """Получение списка полей сериализатора
 
         Args:
@@ -83,7 +85,9 @@ class SnatchInfo:
                     pass
         return result
 
-    def get_field_info_by_name(self, view: GenericViewSet, field_name: str) -> OrderedDict:
+    def get_field_info_by_name(
+        self, view: GenericViewSet, field_name: str
+    ) -> OrderedDict:
         """Получение информации о поле сериализатора из представления по его наименованию.
 
         Args:
@@ -105,7 +109,9 @@ class SnatchInfo:
             else:
                 return self.get_field_info(field, model_field)
 
-    def get_field_info(self, field: serializers.Field, model_field: models.Field) -> OrderedDict:
+    def get_field_info(
+        self, field: serializers.Field, model_field: models.Field
+    ) -> OrderedDict:
         """Получение информации о поле, которое не является отношением
 
         Args:
@@ -126,7 +132,9 @@ class SnatchInfo:
             }
         )
 
-    def get_ref_field_info(self, field: serializers.Field, model_field: models.Field) -> OrderedDict:
+    def get_ref_field_info(
+        self, field: serializers.Field, model_field: models.Field
+    ) -> OrderedDict:
         """Получение информации о поле, которое является отношением
 
         Args:

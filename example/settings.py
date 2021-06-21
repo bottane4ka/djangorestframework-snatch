@@ -66,7 +66,10 @@ DATABASES = {
     }
 }
 
-SNATCH_FRAMEWORK = {"PAGE_SIZE": 20}
+SNATCH_FRAMEWORK = {
+    "PAGE_SIZE": 20,
+    "MAX_LEVEL": 4
+}
 
 LANGUAGE_CODE = "ru-RU"
 TIME_ZONE = "Europe/Moscow"

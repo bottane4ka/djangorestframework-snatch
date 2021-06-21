@@ -18,6 +18,7 @@ class SnatchCreateModelMixin(mixins.CreateModelMixin):
     """Создание объекта модели
 
     """
+
     pass
 
 
@@ -25,6 +26,7 @@ class SnatchRetrieveModelMixin:
     """Получение объекта модели
 
     """
+
     def retrieve(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -38,6 +40,7 @@ class SnatchListModelMixin:
     """Получение списка объектов и их количества в списке
 
     """
+
     def list(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -59,6 +62,7 @@ class SnatchUpdateModelMixin:
     """Обновление объекта модели
 
     """
+
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_queryset(**kwargs)
@@ -77,6 +81,7 @@ class SnatchDestroyModelMixin:
     """Удаление объекта модели
 
     """
+
     def destroy(self, request, *args, **kwargs):
         try:
             queryset = self.get_queryset()
@@ -93,6 +98,7 @@ class SnatchInfoModelMixin:
     """Получение информации о таблице с возможностью редиректа на родительскую таблицу
 
     """
+
     info_class = SnatchInfo
 
     def info(self, request, *args, **kwargs):
@@ -124,6 +130,7 @@ class SnatchOptionsModelMixin:
     """Получение информации через HTTP метод OPTIONS
 
     """
+
     def options(self, request, *args, **kwargs):
         data = self.info_class().determine_metadata(self)
         return Response(data, status=status.HTTP_200_OK)
@@ -134,6 +141,7 @@ class SnatchDeserializationMixin:
     Преобразование вложенных структур в объекты модели.
 
     """
+
     def run_validation(self, data):
         model_field = (
             self.parent.Meta.model._meta.get_field(self.source) if self.parent else None
@@ -166,6 +174,7 @@ class SnatchSerializationMixin:
     """Сериализация объекта модели с добавлением self и link.
 
     """
+
     @add_link_one
     def to_representation(self, instance):
         ret = OrderedDict()
@@ -195,7 +204,8 @@ class SnatchListSerializerMixin:
     """Сериализация списка объектов модели с добавлением self и link.
 
     """
-    @add_link_many
+
+    # @add_link_many
     def to_representation(self, data):
         iterable = data.all() if isinstance(data, Manager) else data
 

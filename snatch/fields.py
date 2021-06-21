@@ -1,3 +1,5 @@
+import copy
+
 from rest_framework.fields import Field
 
 from snatch.wrappers import add_link_many
@@ -7,6 +9,7 @@ class SnatchSerializerMethodField(Field):
     """Метод сериализатора, который оборачивает данные в self и link.
 
     """
+
     def __init__(self, method_name=None, source=None, **kwargs):
         self.method_name = method_name
         kwargs["source"] = "*"
@@ -29,7 +32,8 @@ class SnatchSerializerMethodField(Field):
 
         self.source_attrs = [] if self.source == "*" else self.source.split(".")
 
-    @add_link_many
+    # @add_link_many
     def to_representation(self, value):
         method = getattr(self.parent, self.method_name)
+        self.context["source"] = self.source
         return method(value)

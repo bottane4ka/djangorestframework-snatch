@@ -13,6 +13,7 @@ class SnatchSerializer(
     """Snatch сериализатор
 
     """
+
     @classmethod
     def many_init(cls, *args, **kwargs):
         kwargs["child"] = cls()
@@ -23,4 +24,5 @@ class SnatchListSerializer(SnatchListSerializerMixin, ListSerializer):
     """Snatch сериализатор для списка
 
     """
+
     pass
